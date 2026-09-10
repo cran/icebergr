@@ -1,0 +1,61 @@
+TARGET_DIR = ./rust/target
+LIBDIR = $(TARGET_DIR)/@LIBDIR@
+STATLIB = $(LIBDIR)/libicebergr.a
+# @PKG_LIBS_EXTRA@ carries the macOS frameworks that rustls-native-certs (which
+# reads the system trust store through Security) and reqwest's proxy detection
+# (SystemConfiguration) need. Which platform we are on is decided by
+# tools/config.R rather than by a conditional here, because GNU make
+# conditionals, appending assignment and shell interpolation are all
+# non-portable and R CMD check reports a WARNING for them.
+PKG_LIBS = -L$(LIBDIR) -licebergr @PKG_LIBS_EXTRA@
+
+all: $(SHLIB) rust_clean
+
+.PHONY: $(STATLIB)
+
+$(SHLIB): $(STATLIB)
+
+CARGOTMP = $(CURDIR)/.cargo
+VENDOR_DIR = $(CURDIR)/vendor
+
+# CRAN note: cargo and rustc versions are reported during configure by
+# tools/msrv.R, which is also the gate on the minimum version.
+#
+# --ignore-rust-version is why that gate can be the only one. Four crates in the
+# tree -- iceberg, iceberg-catalog-rest, iceberg-catalog-glue and fastnum --
+# declare rust-version = "1.94" under iceberg-rust's rolling-MSRV policy, and
+# cargo treats a dependency's declaration as a hard error rather than a warning.
+# None of them actually needs it: the tree compiles and the tests pass on 1.92,
+# which is what CRAN's Windows build farm carries. Without this flag that farm
+# cannot build the package at all. tools/msrv.R still refuses anything below the
+# floor in DESCRIPTION, so nothing is silently unchecked.
+#
+# tools/config.R decides @USE_VENDOR@: true for a CRAN build that has
+# vendor.tar.xz to unpack, in which case cargo is pointed at the unpacked tree
+# and @CRAN_FLAGS@ carries --offline, so the build touches the network at no
+# point. It is false when NOT_CRAN is set, when the archive is absent, and when
+# @FEATURES@ asks for an optional backend -- the archive is pruned down to the
+# crates the default build compiles, so a feature build has to resolve from
+# crates.io. RUSTFLAGS gains --print=native-static-libs so that any missing
+# platform link flag shows up in the build log rather than as an inscrutable
+# linker error.
+$(STATLIB):
+	if [ "@USE_VENDOR@" = "true" ]; then \
+		tar xf rust/vendor.tar.xz && \
+		mkdir -p $(CARGOTMP) && \
+		cp rust/vendor-config.toml $(CARGOTMP)/config.toml; \
+	fi
+
+	export CARGO_HOME=$(CARGOTMP) && \
+	@MACOS_EXPORT@ \
+	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
+	RUSTFLAGS="$(RUSTFLAGS) --print=native-static-libs" cargo build --ignore-rust-version @CRAN_FLAGS@ @FEATURES@ --lib @PROFILE@ --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR)
+
+	# CARGO_HOME is inside the build tree, so it must not be left behind.
+	rm -Rf $(CARGOTMP)
+
+rust_clean: $(SHLIB)
+	rm -Rf $(CARGOTMP) $(VENDOR_DIR) @CLEAN_TARGET@
+
+clean:
+	rm -Rf $(SHLIB) $(STATLIB) $(OBJECTS) $(TARGET_DIR) $(VENDOR_DIR) $(CARGOTMP)

@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Getting started with icebergr</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Getting started with icebergr</h1>
+
+
+
+<p>Every example here runs offline against a table built on your own
+machine. No catalog server, no network, no credentials.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(icebergr)</span></code></pre></div>
+<div id="what-this-package-is-for" class="section level2">
+<h2>What this package is for</h2>
+<p>Iceberg is the open table format that Snowflake, Databricks,
+BigQuery, AWS and Dremio have all standardised on. Apache maintains
+clients for Java, Python, Rust and Go — but not R, which has been able
+to read Iceberg tables only by routing through DuckDB. That rules out
+writes, snapshot management, schema access and catalog integration.</p>
+<p><code>icebergr</code> binds <code>iceberg-rust</code> directly. Arrow
+is the interchange layer, so scan results arrive in R without a
+serialisation round trip.</p>
+</div>
+<div id="a-table-to-work-with" class="section level2">
+<h2>A table to work with</h2>
+<p><code>icebergr_example_table()</code> builds a real Iceberg table in
+a temporary warehouse directory: two appends, so there is history to
+travel through and more than one data file for a filter to prune.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_example_table</span>(<span class="at">rows =</span> <span class="dv">200</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>tbl</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;icebergr_table&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   table:    db.events</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   location: /project/rcc/youzhi/.cache/tmp/RtmpzqaPBY/icebergr-warehouse6c2045a4bbc33/db/events</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;   format:   v2</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   snapshot: 6935205264320674142</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   columns:  5</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;     id &lt;int&gt;</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;     event &lt;string&gt;</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;     amount &lt;double&gt;</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;     day &lt;date&gt;</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;     recorded_at &lt;timestamptz&gt;</span></span></code></pre></div>
+<p>It is generated rather than shipped because Iceberg records absolute
+paths in its metadata and its Avro manifests — a table built on one
+machine does not resolve on another.</p>
+</div>
+<div id="inspecting-a-table" class="section level2">
+<h2>Inspecting a table</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">icebergr_schema</span>(tbl)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   field_id name        type        required doc  </span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1        1 id          int         FALSE    &lt;NA&gt; </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2        2 event       string      FALSE    &lt;NA&gt; </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; 3        3 amount      double      FALSE    &lt;NA&gt; </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; 4        4 day         date        FALSE    &lt;NA&gt; </span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 5        5 recorded_at timestamptz FALSE    &lt;NA&gt;</span></span></code></pre></div>
+<p><code>type</code> is the Iceberg type, not the R type. The mapping to
+R happens on read.</p>
+<p>An unpartitioned table returns zero partition fields:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">icebergr_partitions</span>(tbl)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 6</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; # ℹ 6 variables: spec_id &lt;int&gt;, field_id &lt;int&gt;, name &lt;chr&gt;, transform &lt;chr&gt;,</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; #   source_id &lt;int&gt;, source_name &lt;chr&gt;</span></span></code></pre></div>
+</div>
+<div id="reading" class="section level2">
+<h2>Reading</h2>
+<p><code>icebergr_scan()</code> describes a read;
+<code>icebergr_collect()</code> performs it.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">limit =</span> <span class="dv">5</span>))</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;      id event    amount day        recorded_at        </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;date&gt;     &lt;dttm&gt;             </span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 1     1 click      0.5  2024-01-01 2024-01-01 00:00:00</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 2     2 view       1.75 2024-01-02 2024-01-01 01:00:00</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 3     3 purchase   3.01 2024-01-03 2024-01-01 02:00:00</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 4     4 scroll     4.26 2024-01-04 2024-01-01 03:00:00</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 5     5 click      5.52 2024-01-05 2024-01-01 04:00:00</span></span></code></pre></div>
+<p>Scanning the whole table is common enough to have a shorthand:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(tbl))</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; [1] 400</span></span></code></pre></div>
+<div id="pushdown" class="section level3">
+<h3>Pushdown</h3>
+<p><code>filter</code> and <code>select</code> are pushed into scan
+planning. This is the entire performance argument for Iceberg over
+reading raw Parquet: manifests carry per-file statistics, so whole files
+and row groups are eliminated before any bytes are read.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="fu">icebergr_scan</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    tbl,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    <span class="at">filter =</span> id <span class="sc">&gt;</span> <span class="dv">1000</span> <span class="sc">&amp;</span> amount <span class="sc">&gt;</span> <span class="dv">900</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    <span class="at">select =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;event&quot;</span>, <span class="st">&quot;amount&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>  )</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>)</span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; # A tibble: 40 × 3</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;       id event    amount</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt;</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt;  1  1161 purchase   902.</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt;  2  1162 refund     905.</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt;  3  1163 purchase   907.</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt;  4  1164 refund     910.</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt;  5  1165 purchase   912.</span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt;  6  1166 refund     915.</span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt;  7  1167 purchase   917.</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="co">#&gt;  8  1168 refund     920.</span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt;  9  1169 purchase   922.</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt; 10  1170 refund     925.</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt; # ℹ 30 more rows</span></span></code></pre></div>
+<p>Filters may use <code>==</code>, <code>!=</code>, <code>&lt;</code>,
+<code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>,
+<code>&amp;</code>, <code>|</code>, <code>!</code>, <code>%in%</code>,
+<code>is.na()</code>, <code>is.nan()</code> and
+<code>startsWith()</code> – the last only against a <code>string</code>
+column, since Iceberg defines a prefix comparison for no other type. A
+bare name is read as a column when the table has one of that name, and
+otherwise evaluated in the calling environment:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="co"># The second append holds ids 1001 to 1200, so this keeps the last fifty.</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">1150</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> id <span class="sc">&gt;</span> threshold, <span class="at">select =</span> <span class="st">&quot;id&quot;</span>))</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 50 × 1</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt;       id</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt;    &lt;int&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;  1  1151</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt;  2  1152</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;  3  1153</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt;  4  1154</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;  5  1155</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;  6  1156</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;  7  1157</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt;  8  1158</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;  9  1159</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; 10  1160</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; # ℹ 40 more rows</span></span></code></pre></div>
+<p>Anything more elaborate is refused rather than quietly ignored, so
+you always know whether a filter was pushed down:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> <span class="fu">sqrt</span>(amount) <span class="sc">&gt;</span> <span class="dv">10</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; Error in `icebergr_scan()`:</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; ! Cannot push this filter down to Iceberg: neither side of `sqrt(amount) &gt; 10` names a column of the table. Columns are: id, event, amount, day, recorded_at.</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; ℹ Supported: ==, !=, &lt;, &lt;=, &gt;, &gt;=, &amp;, |, !, %in%, is.na(), is.nan() and startsWith().</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; ℹ Anything else can be applied in R after icebergr_collect().</span></span></code></pre></div>
+</div>
+<div id="verifying-that-pushdown-happened" class="section level3">
+<h3>Verifying that pushdown happened</h3>
+<p>Comparing results proves nothing: a filter applied in R afterwards
+gives the same rows. What distinguishes pushdown is how much was planned
+to be read.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl))[, <span class="fu">c</span>(<span class="st">&quot;record_count&quot;</span>, <span class="st">&quot;file_size_in_bytes&quot;</span>)]</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 2</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt;   record_count file_size_in_bytes</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;              &lt;dbl&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; 1          200               4901</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; 2          200               4998</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> id <span class="sc">&gt;</span> <span class="dv">1000</span>))[, <span class="fu">c</span>(<span class="st">&quot;record_count&quot;</span>)]</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 1</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt;   record_count</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt; 1          200</span></span></code></pre></div>
+<p>Fewer files, and fewer records, than the table holds.</p>
+</div>
+<div id="one-caveat-about-limit" class="section level3">
+<h3>One caveat about <code>limit</code></h3>
+<p><code>limit</code> is <strong>not</strong> pushdown.
+<code>iceberg-rust</code> has no row limit in its scan API, so the same
+files are planned and rows are counted as batches arrive. It bounds how
+much is decoded, not how much is planned. <code>print()</code> says
+so:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> id <span class="sc">&gt;</span> <span class="dv">1000</span>, <span class="at">limit =</span> <span class="dv">10</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="co">#&gt; &lt;icebergr_scan&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co">#&gt;   table:    db.events</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="co">#&gt;   select:   &lt;all columns&gt;</span></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co">#&gt;   filter:   id &gt; 1000 (pushed down)</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a><span class="co">#&gt;   limit:    10 (applied after the scan, not pushed down)</span></span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="co">#&gt;   Use icebergr_collect() to read it.</span></span></code></pre></div>
+</div>
+</div>
+<div id="time-travel" class="section level2">
+<h2>Time travel</h2>
+<p>Every write creates a snapshot.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>history <span class="ot">&lt;-</span> <span class="fu">icebergr_snapshots</span>(tbl)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>history[, <span class="fu">c</span>(<span class="st">&quot;snapshot_id&quot;</span>, <span class="st">&quot;operation&quot;</span>, <span class="st">&quot;added_records&quot;</span>, <span class="st">&quot;total_records&quot;</span>)]</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;   snapshot_id         operation added_records total_records</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;               &lt;chr&gt;             &lt;dbl&gt;         &lt;dbl&gt;</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 1 2210251406760931063 append              200           200</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 2 6935205264320674142 append              200           400</span></span></code></pre></div>
+<p>Snapshot ids are <strong>character</strong>, not numeric. Iceberg
+assigns them as random 64-bit integers, and an R numeric carries only 53
+bits, so passing one through a double would silently select the wrong
+snapshot.</p>
+<p>Read an earlier state by id:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">snapshot_id =</span> history<span class="sc">$</span>snapshot_id[[<span class="dv">1</span>]])))</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co">#&gt; [1] 200</span></span></code></pre></div>
+<p>Or by time, which is resolved against the history to the snapshot
+that was current at that moment:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">as_of =</span> history<span class="sc">$</span>timestamp[[<span class="dv">1</span>]])))</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="co">#&gt; [1] 200</span></span></code></pre></div>
+<p>Iceberg records a schema per snapshot, so <code>filter</code> and
+<code>select</code> are resolved against the schema of the snapshot
+actually being read rather than the current one. A column another engine
+has since renamed or dropped is therefore still nameable as of the
+snapshot that had it, and <code>icebergr_schema()</code> will show you
+what those columns were:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">icebergr_schema</span>(tbl, <span class="at">snapshot_id =</span> history<span class="sc">$</span>snapshot_id[[<span class="dv">1</span>]])</span>
+<span id="cb16-2"><a href="#cb16-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span id="cb16-3"><a href="#cb16-3" tabindex="-1"></a><span class="co">#&gt;   field_id name        type        required doc  </span></span>
+<span id="cb16-4"><a href="#cb16-4" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;</span></span>
+<span id="cb16-5"><a href="#cb16-5" tabindex="-1"></a><span class="co">#&gt; 1        1 id          int         FALSE    &lt;NA&gt; </span></span>
+<span id="cb16-6"><a href="#cb16-6" tabindex="-1"></a><span class="co">#&gt; 2        2 event       string      FALSE    &lt;NA&gt; </span></span>
+<span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a><span class="co">#&gt; 3        3 amount      double      FALSE    &lt;NA&gt; </span></span>
+<span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a><span class="co">#&gt; 4        4 day         date        FALSE    &lt;NA&gt; </span></span>
+<span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a><span class="co">#&gt; 5        5 recorded_at timestamptz FALSE    &lt;NA&gt;</span></span></code></pre></div>
+</div>
+<div id="writing" class="section level2">
+<h2>Writing</h2>
+<p>Writes are append-only. Nothing already in the table is rewritten or
+removed.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>new_rows <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">c</span>(<span class="dv">9001</span><span class="dt">L</span>, <span class="dv">9002</span><span class="dt">L</span>),</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>  <span class="at">event =</span> <span class="fu">c</span>(<span class="st">&quot;purchase&quot;</span>, <span class="st">&quot;refund&quot;</span>),</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>  <span class="at">amount =</span> <span class="fu">c</span>(<span class="fl">42.5</span>, <span class="sc">-</span><span class="fl">12.25</span>),</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a>  <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="fu">c</span>(<span class="st">&quot;2024-07-01&quot;</span>, <span class="st">&quot;2024-07-02&quot;</span>)),</span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>  <span class="at">recorded_at =</span> <span class="fu">as.POSIXct</span>(<span class="fu">c</span>(<span class="st">&quot;2024-07-01 09:00:00&quot;</span>, <span class="st">&quot;2024-07-02 10:30:00&quot;</span>), <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a>)</span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_append</span>(tbl, new_rows)</span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(tbl))</span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="co">#&gt; [1] 402</span></span></code></pre></div>
+<p><code>icebergr_append()</code> returns an <em>updated</em> handle
+rather than mutating the old one, so reassign it. The old handle still
+reads the older snapshot, which is occasionally useful and never
+surprising.</p>
+<p>Columns are matched by name, not position, so order does not matter.
+A column the table does not have is an error rather than a silent
+drop:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">icebergr_append</span>(tbl, <span class="fu">transform</span>(new_rows, <span class="at">unexpected =</span> <span class="dv">1</span>))</span>
+<span id="cb18-2"><a href="#cb18-2" tabindex="-1"></a><span class="co">#&gt; Error in rs_table_append(tbl = tbl$ptr, stream_addr = holder$addr, compression = compression, : the data has 1 column(s) that the table does not: unexpected.</span></span>
+<span id="cb18-3"><a href="#cb18-3" tabindex="-1"></a><span class="co">#&gt; Table columns are: amount, day, event, id, recorded_at.</span></span></code></pre></div>
+<div id="creating-a-table" class="section level3">
+<h3>Creating a table</h3>
+<p>A data frame is enough to define a schema. Only the column names and
+types are used; no rows are written.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>warehouse <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="st">&quot;warehouse&quot;</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a><span class="fu">dir.create</span>(warehouse)</span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a></span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;memory&quot;</span>, <span class="at">warehouse =</span> warehouse)</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a><span class="fu">icebergr_create_namespace</span>(catalog, <span class="st">&quot;analytics&quot;</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a>measurements <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a>  <span class="at">sensor =</span> <span class="fu">character</span>(),</span>
+<span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>  <span class="at">reading =</span> <span class="fu">double</span>(),</span>
+<span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a>  <span class="at">taken_at =</span> <span class="fu">as.POSIXct</span>(<span class="fu">character</span>(), <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>)</span>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a>)</span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a>sensors <span class="ot">&lt;-</span> <span class="fu">icebergr_create_table</span>(catalog, <span class="st">&quot;analytics.measurements&quot;</span>, measurements)</span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="fu">icebergr_schema</span>(sensors)</span>
+<span id="cb19-15"><a href="#cb19-15" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 5</span></span>
+<span id="cb19-16"><a href="#cb19-16" tabindex="-1"></a><span class="co">#&gt;   field_id name     type        required doc  </span></span>
+<span id="cb19-17"><a href="#cb19-17" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;    &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;</span></span>
+<span id="cb19-18"><a href="#cb19-18" tabindex="-1"></a><span class="co">#&gt; 1        1 sensor   string      FALSE    &lt;NA&gt; </span></span>
+<span id="cb19-19"><a href="#cb19-19" tabindex="-1"></a><span class="co">#&gt; 2        2 reading  double      FALSE    &lt;NA&gt; </span></span>
+<span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="co">#&gt; 3        3 taken_at timestamptz FALSE    &lt;NA&gt;</span></span></code></pre></div>
+</div>
+</div>
+<div id="type-fidelity" class="section level2">
+<h2>Type fidelity</h2>
+<p>Most R types survive unchanged. The exception worth knowing is
+<code>factor</code>: Iceberg has no dictionary type, so levels cannot be
+carried and values come back as <code>character</code>.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>types <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  <span class="at">i =</span> <span class="dv">1</span><span class="dt">L</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="at">d =</span> <span class="fl">1.5</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" tabindex="-1"></a>  <span class="at">s =</span> <span class="st">&quot;text&quot;</span>,</span>
+<span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="at">b =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2024-01-01&quot;</span>),</span>
+<span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>  <span class="at">ts =</span> <span class="fu">as.POSIXct</span>(<span class="st">&quot;2024-01-01 12:00:00&quot;</span>, <span class="at">tz =</span> <span class="st">&quot;UTC&quot;</span>),</span>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>  <span class="at">f =</span> <span class="fu">factor</span>(<span class="st">&quot;a&quot;</span>, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">&quot;a&quot;</span>, <span class="st">&quot;b&quot;</span>))</span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>)</span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a></span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a>type_tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_create_table</span>(catalog, <span class="st">&quot;analytics.types&quot;</span>, types)</span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a>type_tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_append</span>(type_tbl, types)</span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a><span class="fu">vapply</span>(<span class="fu">icebergr_collect</span>(type_tbl), <span class="cf">function</span>(x) <span class="fu">class</span>(x)[[<span class="dv">1</span>]], <span class="fu">character</span>(<span class="dv">1</span>))</span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a><span class="co">#&gt;           i           d           s           b         day          ts </span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a><span class="co">#&gt;   &quot;integer&quot;   &quot;numeric&quot; &quot;character&quot;   &quot;logical&quot;      &quot;Date&quot;   &quot;POSIXct&quot; </span></span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a><span class="co">#&gt;           f </span></span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a><span class="co">#&gt; &quot;character&quot;</span></span></code></pre></div>
+</div>
+<div id="knowing-what-is-not-supported" class="section level2">
+<h2>Knowing what is not supported</h2>
+<p><code>icebergr</code> 0.1.0 is deliberately narrow. Rather than
+discovering a gap at runtime, ask:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>support <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()</span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>support<span class="sc">$</span>spec_versions</span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="co">#&gt; [1] 1 2</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a>features <span class="ot">&lt;-</span> support<span class="sc">$</span>features</span>
+<span id="cb22-2"><a href="#cb22-2" tabindex="-1"></a>unsupported <span class="ot">&lt;-</span> <span class="sc">!</span><span class="fu">is.na</span>(features<span class="sc">$</span>supported) <span class="sc">&amp;</span> <span class="sc">!</span>features<span class="sc">$</span>supported</span>
+<span id="cb22-3"><a href="#cb22-3" tabindex="-1"></a>features[unsupported, <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;reason&quot;</span>)]</span>
+<span id="cb22-4"><a href="#cb22-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 16 × 2</span></span>
+<span id="cb22-5"><a href="#cb22-5" tabindex="-1"></a><span class="co">#&gt;    feature                       reason                                         </span></span>
+<span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;                         &lt;chr&gt;                                          </span></span>
+<span id="cb22-7"><a href="#cb22-7" tabindex="-1"></a><span class="co">#&gt;  1 AWS Glue catalog              Requires the optional &#39;glue&#39; Cargo feature     </span></span>
+<span id="cb22-8"><a href="#cb22-8" tabindex="-1"></a><span class="co">#&gt;  2 Object storage (S3)           Requires the optional &#39;s3&#39; Cargo feature       </span></span>
+<span id="cb22-9"><a href="#cb22-9" tabindex="-1"></a><span class="co">#&gt;  3 Nested field pushdown         iceberg-rust cannot plan a scan filtered or pr…</span></span>
+<span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt;  4 Table properties (write)      Needs an update_properties transaction; out of…</span></span>
+<span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt;  5 Hadoop/filesystem catalog     Not implemented in iceberg-rust; use type = &#39;m…</span></span>
+<span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt;  6 Row limit pushdown            iceberg-rust has no row limit in its scan API;…</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;  7 Row-level deletes (write)     iceberg-rust 0.10.0 can write an equality dele…</span></span>
+<span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt;  8 MERGE / upsert                Needs row-level deletes plus an overwrite, nei…</span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt;  9 Overwrite writes              iceberg-rust 0.10.0 has no overwrite or rewrit…</span></span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; 10 Schema evolution              Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; 11 Partitioned table creation    Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a><span class="co">#&gt; 12 Append to a partitioned table An append would have to compute a partition va…</span></span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co">#&gt; 13 Partition evolution           Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="co">#&gt; 14 Compaction / maintenance      Compaction needs a rewrite action iceberg-rust…</span></span>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="co">#&gt; 15 dbplyr lazy verbs             Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; 16 Table encryption              Not exposed in icebergr 0.1.0</span></span></code></pre></div>
+<p>Some of those are absent from <code>iceberg-rust</code> itself, not
+just from this package; the <code>reason</code> column says which.</p>
+</div>
+<div id="where-next" class="section level2">
+<h2>Where next</h2>
+<p><code>vignette(&quot;catalog-configuration&quot;)</code> covers connecting to
+REST catalogs, AWS Glue and object storage, and how credentials are
+handled.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

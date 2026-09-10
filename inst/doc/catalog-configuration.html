@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Catalog configuration</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Catalog configuration</h1>
+
+
+
+<p>Connection recipes for the catalogs <code>icebergr</code> supports,
+how credentials are handled, and what to do when a connection does not
+work. Code in this vignette is shown but not run.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(icebergr)</span></code></pre></div>
+<div id="credentials-are-never-arguments" class="section level2">
+<h2>Credentials are never arguments</h2>
+<p><code>icebergr</code> reads credentials from environment variables
+and provides no argument to pass one. This is deliberate. A token passed
+as an argument ends up in the script that called it, in
+<code>.Rhistory</code>, in any knitr cache of the chunk that ran it, and
+in the <code>traceback()</code> of any error raised nearby.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Variable</th>
+<th>Iceberg property</th>
+<th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>ICEBERGR_REST_TOKEN</code></td>
+<td><code>token</code></td>
+<td>Bearer token for a REST catalog</td>
+</tr>
+<tr class="even">
+<td><code>ICEBERGR_REST_CREDENTIAL</code></td>
+<td><code>credential</code></td>
+<td>OAuth2 client credential</td>
+</tr>
+<tr class="odd">
+<td><code>ICEBERGR_REST_OAUTH2_SERVER_URI</code></td>
+<td><code>oauth2-server-uri</code></td>
+<td>OAuth2 token endpoint</td>
+</tr>
+<tr class="even">
+<td><code>ICEBERGR_REST_SCOPE</code></td>
+<td><code>scope</code></td>
+<td>OAuth2 scope</td>
+</tr>
+<tr class="odd">
+<td><code>ICEBERGR_S3_ACCESS_KEY_ID</code></td>
+<td><code>s3.access-key-id</code></td>
+<td>Object storage access key</td>
+</tr>
+<tr class="even">
+<td><code>ICEBERGR_S3_SECRET_ACCESS_KEY</code></td>
+<td><code>s3.secret-access-key</code></td>
+<td>Object storage secret</td>
+</tr>
+<tr class="odd">
+<td><code>ICEBERGR_S3_SESSION_TOKEN</code></td>
+<td><code>s3.session-token</code></td>
+<td>Temporary session token</td>
+</tr>
+<tr class="even">
+<td><code>ICEBERGR_S3_REGION</code></td>
+<td><code>s3.region</code></td>
+<td>Object storage region</td>
+</tr>
+<tr class="odd">
+<td><code>ICEBERGR_S3_ENDPOINT</code></td>
+<td><code>s3.endpoint</code></td>
+<td>Custom or S3-compatible endpoint</td>
+</tr>
+</tbody>
+</table>
+<p>The standard <code>AWS_ACCESS_KEY_ID</code>,
+<code>AWS_SECRET_ACCESS_KEY</code>, <code>AWS_SESSION_TOKEN</code> and
+<code>AWS_REGION</code> variables are consulted as a fallback, so an
+environment already configured for AWS works without further setup.</p>
+<p>Set them outside your scripts — in <code>~/.Renviron</code>, in your
+shell profile, or from your platform’s secret manager:</p>
+<pre><code># ~/.Renviron
+ICEBERGR_REST_TOKEN=eyJhbGciOi...
+ICEBERGR_S3_REGION=us-east-1</code></pre>
+<p>Two guarantees worth relying on:</p>
+<ul>
+<li><code>print()</code> on a catalog never shows its properties.</li>
+<li>Errors raised while connecting list property <em>keys</em> only,
+never values.</li>
+</ul>
+<p>You can still pass a credential through <code>...</code> if you must,
+but <code>icebergr</code> warns when you do, because it is nearly always
+a mistake.</p>
+</div>
+<div id="iceberg-rest-catalog" class="section level2">
+<h2>Iceberg REST catalog</h2>
+<p>The common case: Polaris, Lakekeeper, Nessie, Unity Catalog’s Iceberg
+endpoint, Tabular-style services, or a self-hosted REST catalog.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">ICEBERGR_REST_TOKEN =</span> <span class="st">&quot;...&quot;</span>) <span class="co"># better: set this in ~/.Renviron</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="st">&quot;rest&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">uri =</span> <span class="st">&quot;https://catalog.example.com/api/catalog&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>  <span class="at">warehouse =</span> <span class="st">&quot;analytics&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="fu">icebergr_list_namespaces</span>(catalog)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="fu">icebergr_list_tables</span>(catalog, <span class="st">&quot;analytics&quot;</span>)</span></code></pre></div>
+<p><code>warehouse</code> is whatever the server expects to identify the
+warehouse — often a name rather than a path.</p>
+<div id="with-oauth2-client-credentials" class="section level3">
+<h3>With OAuth2 client credentials</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">ICEBERGR_REST_CREDENTIAL =</span> <span class="st">&quot;client_id:client_secret&quot;</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">ICEBERGR_REST_OAUTH2_SERVER_URI =</span> <span class="st">&quot;https://auth.example.com/oauth/token&quot;</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">ICEBERGR_REST_SCOPE =</span> <span class="st">&quot;catalog&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;rest&quot;</span>, <span class="at">uri =</span> <span class="st">&quot;https://catalog.example.com&quot;</span>)</span></code></pre></div>
+</div>
+<div id="extra-non-secret-properties" class="section level3">
+<h3>Extra, non-secret properties</h3>
+<p>Anything <code>iceberg-rust</code> accepts can be passed through
+<code>...</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="st">&quot;rest&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>  <span class="at">uri =</span> <span class="st">&quot;https://catalog.example.com&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="st">`</span><span class="at">rest.signing-region</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;us-east-1&quot;</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="st">`</span><span class="at">rest.sigv4-enabled</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;true&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="object-storage" class="section level2">
+<h2>Object storage</h2>
+<p>REST catalogs usually serve tables that live in S3. That needs the
+optional <code>s3</code> Cargo feature, which is off by default because
+opendal is a substantial subtree:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="va">ICEBERGR_CARGO_FEATURES</span><span class="op">=</span>s3 <span class="ex">R</span> CMD INSTALL <span class="at">--preclean</span> .</span></code></pre></div>
+<p>That build needs network access. The crates vendored inside the CRAN
+tarball cover the default install only, so cargo fetches the
+<code>s3</code> subtree from crates.io.</p>
+<p>Check before relying on it:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="st">&quot;s3&quot;</span> <span class="sc">%in%</span> <span class="fu">icebergr_spec_support</span>()<span class="sc">$</span>cargo_features</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_ACCESS_KEY_ID =</span> <span class="st">&quot;...&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_SECRET_ACCESS_KEY =</span> <span class="st">&quot;...&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_REGION =</span> <span class="st">&quot;us-east-1&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="st">&quot;rest&quot;</span>,</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>  <span class="at">uri =</span> <span class="st">&quot;https://catalog.example.com&quot;</span>,</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  <span class="at">storage =</span> <span class="st">&quot;s3&quot;</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>)</span></code></pre></div>
+<div id="s3-compatible-storage-minio-r2-ceph" class="section level3">
+<h3>S3-compatible storage (MinIO, R2, Ceph)</h3>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_ENDPOINT =</span> <span class="st">&quot;https://minio.internal:9000&quot;</span>,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_ACCESS_KEY_ID =</span> <span class="st">&quot;...&quot;</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="at">ICEBERGR_S3_SECRET_ACCESS_KEY =</span> <span class="st">&quot;...&quot;</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="st">&quot;rest&quot;</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">uri =</span> <span class="st">&quot;https://catalog.internal/api/catalog&quot;</span>,</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="at">storage =</span> <span class="st">&quot;s3&quot;</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="st">`</span><span class="at">s3.path-style-access</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;true&quot;</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>)</span></code></pre></div>
+<p>Most S3-compatible services need path-style access.</p>
+</div>
+</div>
+<div id="aws-glue" class="section level2">
+<h2>AWS Glue</h2>
+<p>Needs the <code>glue</code> Cargo feature, which implies
+<code>s3</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="va">ICEBERGR_CARGO_FEATURES</span><span class="op">=</span>glue <span class="ex">R</span> CMD INSTALL <span class="at">--preclean</span> .</span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="st">&quot;glue&quot;</span>,</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>  <span class="at">warehouse =</span> <span class="st">&quot;s3://my-bucket/warehouse&quot;</span>,</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>  <span class="st">`</span><span class="at">glue.region</span><span class="st">`</span> <span class="ot">=</span> <span class="st">&quot;us-east-1&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>)</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="fu">icebergr_list_namespaces</span>(catalog)</span></code></pre></div>
+<p>Glue uses the AWS SDK’s own credential chain, so instance roles,
+IRSA, SSO profiles and <code>AWS_PROFILE</code> all work as they do
+elsewhere.</p>
+<p>If the feature is not compiled in, the error says so and how to get
+it, rather than failing at link time.</p>
+</div>
+<div id="local-warehouses" class="section level2">
+<h2>Local warehouses</h2>
+<p>For local files, testing, or a warehouse on a mounted filesystem, use
+the in-process <code>memory</code> catalog. This needs no server and no
+credentials, and is what this package’s own tests run against.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>warehouse <span class="ot">&lt;-</span> <span class="st">&quot;/data/warehouse&quot;</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;memory&quot;</span>, <span class="at">warehouse =</span> warehouse)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="fu">icebergr_create_namespace</span>(catalog, <span class="st">&quot;db&quot;</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_create_table</span>(catalog, <span class="st">&quot;db.events&quot;</span>, <span class="fu">data.frame</span>(<span class="at">id =</span> <span class="fu">integer</span>()))</span></code></pre></div>
+<p>There is deliberately no <code>&quot;hadoop&quot;</code> catalog type:
+<strong><code>iceberg-rust</code> does not implement a Hadoop or
+filesystem catalog.</strong> <code>memory</code> is the local
+equivalent.</p>
+<p>Its one real limitation is that the table registry lives in memory,
+so it does not persist between sessions. Tables already on disk are
+re-attached with <code>icebergr_register_table()</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;memory&quot;</span>, <span class="at">warehouse =</span> <span class="st">&quot;/data/warehouse&quot;</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">icebergr_create_namespace</span>(catalog, <span class="st">&quot;db&quot;</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_register_table</span>(</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>  catalog, <span class="st">&quot;db.events&quot;</span>,</span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  <span class="st">&quot;/data/warehouse/db/events/metadata/00003-....metadata.json&quot;</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>)</span></code></pre></div>
+<p>Point it at the <em>newest</em> metadata file: Iceberg writes a new
+one per commit, and the newest is the current state of the table.</p>
+</div>
+<div id="performance-notes" class="section level2">
+<h2>Performance notes</h2>
+<ul>
+<li><p><strong>Push filters down.</strong> <code>filter</code> and
+<code>select</code> are the difference between reading a table and
+reading the part of it you want. Confirm with
+<code>icebergr_scan_plan()</code>.</p></li>
+<li><p><strong><code>limit</code> is not pushdown.</strong>
+<code>iceberg-rust</code> has no row limit in its scan API, so
+<code>limit</code> bounds decoding, not planning. To read less,
+filter.</p></li>
+<li><p><strong>Batch size trades memory for call overhead.</strong>
+<code>batch_size</code> controls rows per Arrow batch; the default is
+usually right.</p></li>
+<li><p><strong>Worker threads.</strong> The tokio runtime uses 2 worker
+threads, which keeps parallelism within CRAN’s limits for checks. For
+large scans over object storage, raise it before loading the
+package:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">Sys.setenv</span>(<span class="at">ICEBERGR_WORKER_THREADS =</span> <span class="st">&quot;8&quot;</span>)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="fu">library</span>(icebergr)</span></code></pre></div>
+<p>The runtime starts on first use, so this has no effect once you have
+connected.</p></li>
+<li><p><strong>Parallelise with a PSOCK cluster, not with
+<code>fork</code>.</strong> <code>icebergr</code> drives an async
+runtime whose worker threads do not survive <code>fork()</code>, and R’s
+<code>parallel::mclapply()</code> forks. Once you have made any
+<code>icebergr</code> call in the parent, a forked child that calls into
+<code>icebergr</code> <strong>hangs</strong> rather than erroring. Use
+<code>parallel::makeCluster()</code>, which starts fresh R processes,
+and open the catalog inside each worker:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>cl <span class="ot">&lt;-</span> parallel<span class="sc">::</span><span class="fu">makeCluster</span>(<span class="dv">4</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>parallel<span class="sc">::</span><span class="fu">clusterEvalQ</span>(cl, <span class="fu">library</span>(icebergr))</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>parallel<span class="sc">::</span><span class="fu">parLapply</span>(cl, shards, <span class="cf">function</span>(shard) {</span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;memory&quot;</span>, <span class="at">warehouse =</span> <span class="st">&quot;/data/warehouse&quot;</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_table</span>(catalog, <span class="st">&quot;db.events&quot;</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> day <span class="sc">==</span> shard))</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>})</span></code></pre></div>
+<p>Note that the handle is opened <em>in</em> the worker. A handle
+cannot be sent to one: it holds a pointer into the Rust side, and
+serialising it produces the “no longer usable” error rather than a wrong
+answer.</p></li>
+<li><p><strong>Reads stream.</strong> Batches are pulled one at a time
+rather than collected up front, so memory stays bounded by batch size,
+not table size — until <code>icebergr_collect()</code> materialises the
+result into a tibble, which is necessarily all of it. To process a table
+larger than memory, scan it in filtered pieces.</p></li>
+</ul>
+</div>
+<div id="troubleshooting" class="section level2">
+<h2>Troubleshooting</h2>
+<p><strong><code>could not connect to the REST catalog</code>, with a
+list of property keys.</strong> The keys tell you what the catalog was
+given. A missing <code>token</code> usually means the environment
+variable is not visible to R — check
+<code>Sys.getenv(&quot;ICEBERGR_REST_TOKEN&quot;)</code>, and remember that
+<code>~/.Renviron</code> is read only at startup.</p>
+<p><strong>TLS failures behind a corporate proxy.</strong>
+<code>icebergr</code> uses rustls with the platform trust store, so a CA
+installed in the system store is honoured. A CA present only in R’s own
+bundle is not.</p>
+<p><strong><code>is not available in this build of icebergr</code>.</strong>
+An optional Cargo feature is missing. The message names the feature and
+gives the install command.</p>
+<p><strong><code>The compiled Rust component of icebergr is not available.</code></strong>
+The package loaded but its native routines did not. This is a
+half-finished source install; reinstall and read the build log for cargo
+errors.</p>
+<p><strong>Reads succeed, writes fail with a permissions error.</strong>
+Iceberg commits write both data files and new metadata. Write access to
+the table’s <code>metadata/</code> prefix is required, not just to
+<code>data/</code>.</p>
+<p><strong>A table shows fewer rows than expected.</strong> Reading a
+merge-on-read table is supported: <code>iceberg-rust</code> applies
+positional and equality deletes during the scan, so rows another engine
+deleted will correctly be absent. If the count still looks wrong, check
+whether you are reading an older snapshot — <code>print()</code> on a
+table shows which one — and whether a filter is pruning more than you
+meant, with <code>icebergr_scan_plan()</code>.</p>
+<p><strong>Writes to a table another engine performs deletes
+on.</strong> <code>icebergr</code> only appends, which is always safe.
+It cannot delete or update rows, so a workflow needing that must do it
+elsewhere; see <code>icebergr_spec_support()</code>.</p>
+<p><strong><code>mclapply()</code> never returns.</strong> The async
+runtime’s worker threads do not survive a <code>fork()</code>, so a
+forked child that calls into <code>icebergr</code> waits forever on
+threads that did not come across. There is no error to catch, which is
+what makes it worth knowing about. Forking <em>before</em> any
+<code>icebergr</code> call is fine — each child then starts its own
+runtime — but once the parent has connected, use
+<code>parallel::makeCluster()</code> instead and open the catalog inside
+each worker. See <em>Performance notes</em> above.</p>
+<p><strong><code>cannot append to &quot;db.events&quot;: it is partitioned by …</code>.</strong>
+Reading a partitioned table works, and
+<code>icebergr_partitions()</code> reports its spec, but appending to
+one would have to compute a partition value for every row, which this
+version does not do. The append is refused before any data file is
+written, so nothing is left behind in the warehouse. Write to such a
+table with an engine that supports partitioned writes.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
