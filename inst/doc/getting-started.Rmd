@@ -1,5 +1,7 @@
 ---
 title: "Getting started with icebergr"
+author: "Youzhi Yu<br><span style='font-size:85%;'>University of Chicago</span>"
+bibliography: vignette_reference.bib
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Getting started with icebergr}
@@ -12,6 +14,12 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+# Handles and catalogs print their `location:` / `warehouse:`, which is a
+# temporary directory unique to whichever machine built this page. Printing it
+# would bake that path into the shipped HTML, so it is replaced here.
+show <- function(x) {
+  writeLines(gsub(tempdir(), "<tempdir>", capture.output(print(x)), fixed = TRUE))
+}
 ```
 
 Every example here runs offline against a table built on your own machine. No
@@ -23,14 +31,19 @@ library(icebergr)
 
 ## What this package is for
 
-Iceberg is the open table format that Snowflake, Databricks, BigQuery, AWS and
-Dremio have all standardised on. Apache maintains clients for Java, Python, Rust
-and Go — but not R, which has been able to read Iceberg tables only by routing
-through DuckDB. That rules out writes, snapshot management, schema access and
-catalog integration.
+Iceberg [@icebergspec] is the open table format that Snowflake, Databricks,
+BigQuery, AWS and Dremio have all standardised on. Apache maintains clients for
+Java, Python, Rust and Go, but not for R, where Iceberg has been reached through
+a query engine such as DuckDB [@raasveldt2019duckdb]. A client is a different
+thing: it hands you the table itself, with its snapshots, its schema as of each
+of them and its scan plan, as R objects.
 
-`icebergr` binds `iceberg-rust` directly. Arrow is the interchange layer, so
-scan results arrive in R without a serialisation round trip.
+`icebergr` binds `iceberg-rust` [@icebergrust] directly through extendr
+[@extendr]. Arrow is the interchange layer, so scan results arrive in R over the
+C stream interface [@arrowcdata] without a serialisation round trip.
+
+`vignette("table-format")` explains the format itself, and why a client rather
+than an exporter is the thing worth having.
 
 ## A table to work with
 
@@ -40,12 +53,12 @@ data file for a filter to prune.
 
 ```{r}
 tbl <- icebergr_example_table(rows = 200)
-tbl
+show(tbl)
 ```
 
 It is generated rather than shipped because Iceberg records absolute paths in its
-metadata and its Avro manifests — a table built on one machine does not resolve
-on another.
+metadata and its Avro manifests, so a table built on one machine does not
+resolve on another.
 
 ## Inspecting a table
 
@@ -247,7 +260,7 @@ vapply(icebergr_collect(type_tbl), function(x) class(x)[[1]], character(1))
 
 ## Knowing what is not supported
 
-`icebergr` 0.1.0 is deliberately narrow. Rather than discovering a gap at
+`icebergr` is deliberately narrow. Rather than discovering a gap at
 runtime, ask:
 
 ```{r}
@@ -266,5 +279,14 @@ the `reason` column says which.
 
 ## Where next
 
-`vignette("catalog-configuration")` covers connecting to REST catalogs, AWS Glue
-and object storage, and how credentials are handled.
+Six vignettes go deeper on one theme each:
+
+* `vignette("table-format")`: what Iceberg is, and what it fixes
+* `vignette("pushdown")`: how a filter prunes files and row groups
+* `vignette("time-travel")`: snapshots, timestamps and rollbacks
+* `vignette("writing")`: appends, table creation, and what is refused
+* `vignette("types")`: the R, Arrow and Iceberg type correspondence
+* `vignette("catalog-configuration")`: REST, AWS Glue, object storage,
+  and how credentials are handled
+
+# References

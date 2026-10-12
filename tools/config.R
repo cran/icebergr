@@ -97,10 +97,24 @@ if (!is_not_cran && vendor_exists && nzchar(env_features)) {
   ))
 }
 
-# Only restrict cargo when we are actually building from the vendored sources.
+# Two separate decisions, previously made by one condition.
+#
 # `-j 2` keeps us inside CRAN's limit on parallelism, which cargo would
-# otherwise blow past by defaulting to the number of logical CPUs.
-.cran_flags <- if (use_vendor) "-j 2 --offline" else ""
+# otherwise blow past by defaulting to the number of logical CPUs. That limit
+# applies to any build CRAN runs, whether or not it happens to be using the
+# vendored archive -- so it is tied to NOT_CRAN, not to `use_vendor`. Tying it
+# to `use_vendor` meant a CRAN build that asked for an optional backend, or one
+# where the archive was missing, silently ran cargo at full width.
+#
+# `--offline` is the vendoring half: it can only be passed when there is an
+# unpacked tree for cargo to resolve against, so it stays on `use_vendor`.
+.cran_flags <- paste(
+  c(
+    if (!is_not_cran) "-j 2",
+    if (use_vendor) "--offline"
+  ),
+  collapse = " "
+)
 
 # rustls-native-certs reads the macOS system trust store through the Security
 # framework, and reqwest's proxy detection pulls in SystemConfiguration. Decided
@@ -184,6 +198,32 @@ new_txt <- gsub("@MACOS_EXPORT@", .macos_export, new_txt)
 new_txt <- gsub("@PROFILE@", .profile, new_txt)
 new_txt <- gsub("@CLEAN_TARGET@", .clean_targets, new_txt)
 new_txt <- gsub("@LIBDIR@", .libdir, new_txt)
+
+# Every placeholder has to have been substituted. An unsubstituted one is not
+# inert: it survives into src/Makevars as a literal, make passes it to cargo as
+# an argument, and the build fails several minutes later complaining about
+# something like `@NEW_THING@` with no hint that a template and this script have
+# drifted apart. The two sets agree today; this is what keeps them agreeing when
+# the next option is added to one and not the other.
+leftover <- unique(unlist(regmatches(
+  new_txt, gregexpr("@[A-Z_][A-Z_0-9]*@", new_txt)
+)))
+if (length(leftover)) {
+  stop(paste(
+    c(
+      "",
+      "-------------------- [UNSUBSTITUTED PLACEHOLDER] --------------------",
+      paste0("`", mv_fp, "` contains placeholders that `tools/config.R` does"),
+      "not substitute:",
+      "",
+      paste("  ", leftover, collapse = "\n"),
+      "",
+      "Add a `gsub()` for each, next to the others above.",
+      "---------------------------------------------------------------------"
+    ),
+    collapse = "\n"
+  ))
+}
 
 message("Writing `", mv_ofp, "`.")
 con <- file(mv_ofp, open = "wb")

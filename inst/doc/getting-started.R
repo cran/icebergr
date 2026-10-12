@@ -3,13 +3,19 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+# Handles and catalogs print their `location:` / `warehouse:`, which is a
+# temporary directory unique to whichever machine built this page. Printing it
+# would bake that path into the shipped HTML, so it is replaced here.
+show <- function(x) {
+  writeLines(gsub(tempdir(), "<tempdir>", capture.output(print(x)), fixed = TRUE))
+}
 
 ## ----setup--------------------------------------------------------------------
 library(icebergr)
 
 ## -----------------------------------------------------------------------------
 tbl <- icebergr_example_table(rows = 200)
-tbl
+show(tbl)
 
 ## -----------------------------------------------------------------------------
 icebergr_schema(tbl)

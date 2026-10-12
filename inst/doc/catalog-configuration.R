@@ -36,8 +36,8 @@ knitr::opts_chunk$set(
 # catalog <- icebergr_catalog(
 #   "rest",
 #   uri = "https://catalog.example.com",
-#   `rest.signing-region` = "us-east-1",
-#   `rest.sigv4-enabled` = "true"
+#   prefix = "analytics",
+#   `header.X-Iceberg-Access-Delegation` = "vended-credentials"
 # )
 
 ## -----------------------------------------------------------------------------
@@ -74,7 +74,7 @@ knitr::opts_chunk$set(
 # catalog <- icebergr_catalog(
 #   "glue",
 #   warehouse = "s3://my-bucket/warehouse",
-#   `glue.region` = "us-east-1"
+#   region_name = "us-east-1"
 # )
 # 
 # icebergr_list_namespaces(catalog)

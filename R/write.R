@@ -46,7 +46,8 @@ icebergr_create_namespace <- function(catalog, namespace) {
 #' @param data A data frame whose columns define the schema. No rows are written;
 #'   only the column names and types are used. An Arrow schema is also accepted.
 #' @param location Where to store the table. `NULL` lets the catalog decide,
-#'   which is almost always what you want.
+#'   which is almost always what you want. A local path is expanded and made
+#'   absolute first, since it is recorded in the table's metadata as written.
 #'
 #' @return An `icebergr_table` handle for the new, empty table.
 #'
@@ -75,13 +76,28 @@ icebergr_create_table <- function(catalog, table, data, location = NULL) {
     abort("`data` must be a data frame, or an Arrow schema.")
   }
 
+  if (!is.null(location)) {
+    # An empty one reached iceberg-rust as the table's root, so the memory
+    # catalog tried to create `/metadata` at the top of the filesystem.
+    if (!nzchar(trimws(location))) {
+      abort(c(
+        "`location` must not be empty.",
+        i = "Use `location = NULL` to let the catalog decide."
+      ))
+    }
+    # A caller-supplied location may be a local path or a URI. Only a path has
+    # anything to normalise: made absolute and expanded, see absolute_path(),
+    # and with its separators forward, which is how Iceberg wants them.
+    if (is_local_dir(location)) {
+      location <- absolute_path(location)
+    }
+    location <- as_iceberg_location(location)
+  }
+
   # The schema object has to outlive the call: Rust only borrows it.
   holder <- export_schema(data)
   ptr <- rs_create_table(
-    catalog$ptr, ident$namespace, ident$name, holder$addr,
-    # A caller-supplied location may be a Windows path or a URI. Only the former
-    # has separators to normalise, and Iceberg wants them forward.
-    if (is.null(location)) NULL else as_iceberg_location(location)
+    catalog$ptr, ident$namespace, ident$name, holder$addr, location
   )
   new_icebergr_table(ptr, catalog)
 }
@@ -94,7 +110,28 @@ icebergr_create_table <- function(catalog, table, data, location = NULL) {
 #'
 #' @param catalog An `icebergr_catalog` from [icebergr_catalog()].
 #' @param table A table identifier, `"namespace.table"`, to register it under.
-#' @param metadata_location Path to the table's `metadata.json`.
+#' @param metadata_location Path to the table's `metadata.json`, or its location
+#'   in object storage, such as `"s3://bucket/db/events/metadata/..."`. A local
+#'   path has to exist; a remote one is left to the catalog to find.
+#' @param confine Whether to require `metadata_location` to sit inside the
+#'   catalog's own `warehouse`. `TRUE` (the default) refuses anything outside
+#'   it; `FALSE` allows any path. Ignored when the catalog has no local warehouse
+#'   directory to confine against, such as a REST catalog identified by name or
+#'   one whose warehouse is in object storage.
+#'
+#' @section Registering a metadata file you did not write:
+#' A metadata file names its table's `location`, its manifest list and every
+#' data file, all as absolute paths, and registering it makes this package read
+#' them. Those paths are not constrained by where the metadata file itself sits,
+#' so a file from a shared drive or an issue attachment can point anywhere on
+#' disk. With the `s3` feature compiled in it can also point at an `s3://` or
+#' `https://` location, which turns opening a nominally offline `memory`-catalog
+#' table into an outbound request to a host of its author's choosing.
+#'
+#' `confine = TRUE` is the guard: the metadata file has to be inside the
+#' catalog's warehouse, which is the directory you nominated. It does not vet
+#' the paths *within* the file, so treat `confine = FALSE` as equivalent to
+#' running the file's author's code against your filesystem.
 #'
 #' @return An `icebergr_table` handle.
 #'
@@ -121,22 +158,92 @@ icebergr_create_table <- function(catalog, table, data, location = NULL) {
 #' again <- icebergr_register_table(reopened, "db.events", newest)
 #' icebergr_collect(again)
 #' @export
-icebergr_register_table <- function(catalog, table, metadata_location) {
+icebergr_register_table <- function(catalog, table, metadata_location,
+                                    confine = TRUE) {
   check_catalog(catalog)
   check_string(metadata_location, "metadata_location", allow_null = FALSE)
+  check_bool(confine, "confine")
   ident <- parse_identifier(table)
 
-  if (!file.exists(metadata_location)) {
-    abort(paste0(
-      "No metadata file at ", encodeString(metadata_location, quote = "\""), "."
-    ))
+  # Only a local path can be checked for, or resolved, here. An `s3://` location
+  # is the catalog's to find, and used to be refused outright as "No metadata
+  # file" because file.exists() cannot see into a bucket.
+  location <- metadata_location
+  if (is_local_dir(metadata_location)) {
+    if (!file.exists(metadata_location) || dir.exists(metadata_location)) {
+      abort(paste0(
+        "No metadata file at ", encodeString(metadata_location, quote = "\""), "."
+      ))
+    }
+    # Resolved before the comparison: ".." and a symlink both make a path that
+    # looks confined and is not.
+    location <- as_iceberg_location(normalizePath(metadata_location, mustWork = TRUE))
   }
 
-  ptr <- rs_register_table(
-    catalog$ptr, ident$namespace, ident$name,
-    as_iceberg_location(normalizePath(metadata_location, mustWork = TRUE))
-  )
+  warehouse <- catalog$warehouse
+  if (confine && !is.null(warehouse) &&
+    !(is_local_dir(warehouse) && dir.exists(warehouse))) {
+    # Nothing to compare against: the warehouse is a remote location, or a
+    # name a REST server resolves. dir.exists() as well as is_local_dir(),
+    # because a name has no scheme either: `warehouse = "analytics"` was
+    # compared as the directory `analytics` under the working directory, so
+    # every registration on such a catalog was refused.
+    confine <- FALSE
+  }
+  if (confine && !is.null(warehouse)) {
+    root <- as_iceberg_location(normalizePath(warehouse, mustWork = FALSE))
+    if (!is_inside(location, root)) {
+      abort(c(
+        paste0(
+          "The metadata file is outside the catalog's warehouse: ",
+          encodeString(location, quote = "\""), "."
+        ),
+        i = paste0("The warehouse is ", encodeString(root, quote = "\""), "."),
+        i = paste0(
+          "A metadata file names absolute paths for its data, so registering ",
+          "one from an untrusted source reads files of its author's choosing."
+        ),
+        i = "Pass `confine = FALSE` if the file is trusted."
+      ))
+    }
+  }
+
+  ptr <- rs_register_table(catalog$ptr, ident$namespace, ident$name, location)
   new_icebergr_table(ptr, catalog)
+}
+
+# The keys Iceberg writes into a snapshot summary itself, which a user-supplied
+# property must not collide with.
+#
+# `operation` is a field of the summary rather than a property, so a property of
+# that name was serialised as a *second* `"operation"` key in the metadata JSON.
+# The append reported success, and the table could then never be loaded again:
+# not reloaded, not registered, not appended to, by this package or any other
+# engine, since the file no longer parses.
+#
+# The rest are the metrics iceberg-rust 0.10 computes (the constants in its
+# `spec/snapshot_summary.rs`, which are private, hence the copy). A computed one
+# overwrites a colliding user value, but an append computes only what is
+# positive, so a user-supplied `deleted-records` survived and was subtracted
+# into `total-records`: `properties = c("deleted-records" = "7")` on a five-row
+# append into a five-row table recorded a total of 3. `partitions.` is the
+# prefix of the per-partition summaries it writes for a partitioned table.
+reserved_summary_keys <- c(
+  "operation",
+  "added-data-files", "added-delete-files", "added-equality-delete-files",
+  "added-equality-deletes", "added-files-size", "added-position-delete-files",
+  "added-position-deletes", "added-records", "changed-partition-count",
+  "deleted-data-files", "deleted-records", "removed-delete-files",
+  "removed-equality-delete-files", "removed-equality-deletes",
+  "removed-files-size", "removed-position-delete-files",
+  "removed-position-deletes", "total-data-files", "total-delete-files",
+  "total-equality-deletes", "total-files-size", "total-position-deletes",
+  "total-records"
+)
+
+#' @noRd
+is_reserved_summary_key <- function(keys) {
+  keys %in% reserved_summary_keys | startsWith(keys, "partitions.")
 }
 
 #' Append rows to an Iceberg table
@@ -152,7 +259,9 @@ icebergr_register_table <- function(catalog, table, metadata_location) {
 #' @param properties Optional named character vector recorded in the new
 #'   snapshot's summary, for provenance. Do not put credentials here: snapshot
 #'   summaries are stored in table metadata and are readable by anyone who can
-#'   read the table.
+#'   read the table. The keys Iceberg writes into a summary itself, such as
+#'   `"operation"` and `"added-records"`, are refused, since a value for one
+#'   would corrupt the record of what the commit did.
 #'
 #' @return An updated `icebergr_table` handle that sees the new snapshot. The
 #'   handle passed in is unchanged, so reassign it: `tbl <- icebergr_append(tbl, x)`.
@@ -174,9 +283,12 @@ icebergr_register_table <- function(catalog, table, metadata_location) {
 #'
 #' A table registered with [icebergr_register_table()] must also have been
 #' registered from a metadata file named the way Iceberg names them,
-#' `<version>-<uuid>.metadata.json`, because the next one is derived from that
-#' name. Every engine writes conforming names; a renamed or hand-made file reads
-#' fine and is refused here, again before anything is written.
+#' `<version>-<uuid>.metadata.json`, inside the table's own `metadata`
+#' directory, because a `memory` or `glue` catalog writes the next one beside it
+#' and derives its name from that one. Every engine writes files like that; a
+#' renamed, moved or hand-made one reads fine and is refused here, again before
+#' anything is written. A REST catalog's server chooses the next location
+#' itself, so its tables are not held to this.
 #'
 #' This is an append. Row-level deletes, overwrites and MERGE are not supported;
 #' see [icebergr_spec_support()].
@@ -210,6 +322,25 @@ icebergr_append <- function(tbl,
       anyNA(properties)) {
       abort("`properties` must be a fully named character vector without NAs.")
     }
+    # Rust collects these into a map, so a repeated name kept one of its values
+    # and dropped the other without saying which.
+    repeated <- unique(names(properties)[duplicated(names(properties))])
+    if (length(repeated)) {
+      abort(paste0(
+        "`properties` names ", paste(encodeString(repeated, quote = "\""), collapse = ", "),
+        " more than once."
+      ))
+    }
+    reserved <- names(properties)[is_reserved_summary_key(names(properties))]
+    if (length(reserved)) {
+      abort(c(
+        paste0(
+          "`properties` cannot set ", paste(encodeString(reserved, quote = "\""), collapse = ", "),
+          ": Iceberg writes that key into the snapshot summary itself."
+        ),
+        i = "Choose another name for provenance, such as \"source\" or \"job-id\"."
+      ))
+    }
     keys <- names(properties)
     values <- unname(properties)
   }
@@ -223,7 +354,10 @@ icebergr_append <- function(tbl,
     stream_addr = holder$addr,
     compression = compression,
     property_keys = keys,
-    property_values = values
+    property_values = values,
+    # Whether the commit derives the next metadata file from the current one,
+    # which only some catalogs do; see derives_next_metadata_location().
+    catalog_kind = tbl$catalog$type
   )
 
   # Reported from what Rust actually did rather than from nrow(data), which only

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Youzhi Yu University of Chicago" />
+
+
+<title>Writing: Appends, Tables and What Is Refused</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Writing: Appends, Tables and What Is
+Refused</h1>
+<h4 class="author">Youzhi Yu<br><span style="font-size:85%;">University
+of Chicago</span></h4>
+
+
+
+<p>Writing is where a table format earns its keep: a commit is a
+table-format operation, not a query <span class="citation">(The Apache
+Software Foundation 2026)</span>. This version writes appends, creates
+tables and namespaces, and registers existing tables. Everything it will
+not do, it refuses before writing anything.</p>
+<p>Every example here runs against a local warehouse on your own
+machine.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>warehouse <span class="ot">&lt;-</span> <span class="fu">file.path</span>(<span class="fu">tempdir</span>(), <span class="st">&quot;icebergr-writing&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">dir.create</span>(warehouse, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>catalog <span class="ot">&lt;-</span> <span class="fu">icebergr_catalog</span>(<span class="st">&quot;memory&quot;</span>, <span class="at">warehouse =</span> warehouse)</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">show</span>(catalog)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; &lt;icebergr_catalog&gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt;   type:      memory</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt;   name:      icebergr</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt;   warehouse: &lt;tempdir&gt;/icebergr-writing</span></span></code></pre></div>
+<p>The <code>memory</code> catalog keeps its table pointers in the R
+session and its data on disk. It needs no server, which makes it the
+right thing for tests and for scratch work;
+<code>vignette(&quot;catalog-configuration&quot;)</code> covers REST and AWS Glue,
+which are what you use when the table has to outlive the session.</p>
+<div id="a-namespace-then-a-table" class="section level2">
+<h2>A namespace, then a table</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">icebergr_create_namespace</span>(catalog, <span class="st">&quot;shop&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">icebergr_list_namespaces</span>(catalog)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; [1] &quot;shop&quot;</span></span></code></pre></div>
+<p><code>icebergr_create_table()</code> takes a data frame, but
+<strong>only to read its schema off: no rows are written</strong>. The
+new table is empty, with no snapshot at all:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>template <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="fu">integer</span>(),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">item =</span> <span class="fu">character</span>(),</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">amount =</span> <span class="fu">double</span>(),</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>  <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="fu">character</span>())</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>orders <span class="ot">&lt;-</span> <span class="fu">icebergr_create_table</span>(catalog, <span class="st">&quot;shop.orders&quot;</span>, template)</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="fu">show</span>(orders)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; &lt;icebergr_table&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;   table:    shop.orders</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;   location: &lt;tempdir&gt;/icebergr-writing/shop/orders</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;   format:   v2</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;   snapshot: &lt;none&gt;</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;   columns:  4</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;     id &lt;int&gt;</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;     item &lt;string&gt;</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;     amount &lt;double&gt;</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt;     day &lt;date&gt;</span></span></code></pre></div>
+<p><code>snapshot: &lt;none&gt;</code> is the tell. An Iceberg table
+with no commits is a legitimate state, a schema with no data, and it is
+what you get here. The rows come next.</p>
+</div>
+<div id="appending" class="section level2">
+<h2>Appending</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>orders <span class="ot">&lt;-</span> <span class="fu">icebergr_append</span>(orders, <span class="fu">data.frame</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">item =</span> <span class="fu">c</span>(<span class="st">&quot;mug&quot;</span>, <span class="st">&quot;kettle&quot;</span>, <span class="st">&quot;mug&quot;</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">amount =</span> <span class="fu">c</span>(<span class="fl">9.5</span>, <span class="dv">42</span>, <span class="fl">9.5</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2026-07-01&quot;</span>) <span class="sc">+</span> <span class="dv">0</span><span class="sc">:</span><span class="dv">2</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>))</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="fu">icebergr_collect</span>(orders)</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 4</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;      id item   amount day       </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;chr&gt;   &lt;dbl&gt; &lt;date&gt;    </span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; 1     1 mug       9.5 2026-07-01</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; 2     2 kettle   42   2026-07-02</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; 3     3 mug       9.5 2026-07-03</span></span></code></pre></div>
+<p><code>icebergr_append()</code> returns a <em>new</em> handle,
+pointing at the snapshot the append created. Reassigning is not optional
+bookkeeping; the old handle still reads the old snapshot, by design:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>orders <span class="ot">&lt;-</span> <span class="fu">icebergr_append</span>(orders, <span class="fu">data.frame</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="dv">4</span><span class="dt">L</span>, <span class="at">item =</span> <span class="st">&quot;cafetiere&quot;</span>, <span class="at">amount =</span> <span class="fl">24.5</span>, <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2026-07-04&quot;</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="fu">icebergr_snapshots</span>(orders)[, <span class="fu">c</span>(<span class="st">&quot;operation&quot;</span>, <span class="st">&quot;added_records&quot;</span>, <span class="st">&quot;total_records&quot;</span>)]</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 3</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   operation added_records total_records</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;             &lt;dbl&gt;         &lt;dbl&gt;</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 1 append                3             3</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 2 append                1             4</span></span></code></pre></div>
+<p>Two appends, two snapshots, and <code>vignette(&quot;time-travel&quot;)</code>
+can read either.</p>
+<div id="compression" class="section level3">
+<h3>Compression</h3>
+<p><code>compression</code> picks the Parquet codec, defaulting to
+<code>zstd</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>orders <span class="ot">&lt;-</span> <span class="fu">icebergr_append</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  orders,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="fu">data.frame</span>(<span class="at">id =</span> <span class="dv">5</span><span class="dt">L</span>, <span class="at">item =</span> <span class="st">&quot;grinder&quot;</span>, <span class="at">amount =</span> <span class="dv">60</span>, <span class="at">day =</span> <span class="fu">as.Date</span>(<span class="st">&quot;2026-07-05&quot;</span>)),</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">compression =</span> <span class="st">&quot;snappy&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>)</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(orders))</span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; [1] 5</span></span></code></pre></div>
+<p>Which codec to prefer is a decode-speed against file-size trade, and
+it is measured across the open formats in <span class="citation">Zeng et
+al. (2023)</span>: dictionary encoding does most of the work, and block
+compression on top of it buys less than it used to. <code>zstd</code> is
+a reasonable default for cold data; <code>snappy</code> decodes
+faster.</p>
+</div>
+</div>
+<div id="commits-are-atomic-and-optimistic" class="section level2">
+<h2>Commits are atomic, and optimistic</h2>
+<p>An append writes its Parquet, writes new manifests, and then swaps
+the table pointer in one atomic step, whose failure mode is that nothing
+happened rather than that half of it did. If another writer committed in
+between, the swap is rejected and retried against the new state, which
+is how all three lakehouse formats handle concurrency <span class="citation">(Armbrust et al. 2020; Jain et al. 2023)</span>.</p>
+<p>For a reader this is the property that matters: a scan never sees a
+partial append. That guarantee is the format’s, not this package’s, and
+it is the reason the Hive directory convention had to be replaced <span class="citation">(Thusoo et al. 2009; Armbrust et al. 2021)</span>.</p>
+</div>
+<div id="registering-a-table-someone-else-wrote" class="section level2">
+<h2>Registering a table someone else wrote</h2>
+<p><code>icebergr_register_table()</code> adds an existing table to a
+catalog from its metadata file, without moving or rewriting data:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">icebergr_register_table</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  catalog, <span class="st">&quot;shop.archive&quot;</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">file.path</span>(warehouse, <span class="st">&quot;shop/archive/metadata/00007-8b1c….metadata.json&quot;</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>)</span></code></pre></div>
+<p>The file has to be named the way every Iceberg engine names them,
+<code>&lt;version&gt;-&lt;uuid&gt;.metadata.json</code>, and sit in the
+table’s own <code>metadata</code> directory, because a
+<code>memory</code> or <code>glue</code> catalog writes the next file
+beside it and derives the next version number from its name. A renamed
+or moved file registers and reads perfectly well; it is the
+<em>append</em> that cannot work. A REST catalog’s server chooses its
+own locations, so this does not apply to one.</p>
+<p>That append is refused at the start, before any Parquet is written,
+and the error names the file and its directory. Left to Iceberg the name
+is only inspected when the commit is attempted, by which point the data
+files are already in the warehouse, and this package exposes no
+maintenance operation to clear them.</p>
+<p>It also has to sit inside the catalog’s warehouse, which is what the
+default, <code>confine = TRUE</code>, requires. A metadata file names
+absolute paths for its data, so one from an untrusted source reads
+whatever its author chose; pass <code>confine = FALSE</code> only for a
+file you trust.</p>
+</div>
+<div id="what-is-refused-and-why-that-is-the-design" class="section level2">
+<h2>What is refused, and why that is the design</h2>
+<p>Several write operations are unavailable, and each fails before
+touching the warehouse:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>features <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()<span class="sc">$</span>features</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>writes <span class="ot">&lt;-</span> <span class="fu">grepl</span>(<span class="st">&quot;append|delete|merge|overwrite|partition|propert&quot;</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>  features<span class="sc">$</span>feature,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  <span class="at">ignore.case =</span> <span class="cn">TRUE</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>features[</span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  writes <span class="sc">&amp;</span> <span class="sc">!</span><span class="fu">is.na</span>(features<span class="sc">$</span>supported) <span class="sc">&amp;</span> <span class="sc">!</span>features<span class="sc">$</span>supported,</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;reason&quot;</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a>]</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; # A tibble: 7 × 2</span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;   feature                       reason                                          </span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                         &lt;chr&gt;                                           </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt; 1 Table properties (write)      Needs an update_properties transaction; out of …</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; 2 Row-level deletes (write)     iceberg-rust 0.10 can write an equality delete …</span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt; 3 MERGE / upsert                Needs row-level deletes plus an overwrite, neit…</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; 4 Overwrite writes              iceberg-rust 0.10 has no overwrite or rewrite t…</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt; 5 Partitioned table creation    Out of scope for this version of icebergr       </span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; 6 Append to a partitioned table An append would have to compute a partition val…</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; 7 Partition evolution           Out of scope for this version of icebergr</span></span></code></pre></div>
+<p><strong>Appending to a partitioned table.</strong> Iceberg only
+discovers a missing partition value at commit time, which would leave
+orphan Parquet in the warehouse and report the cause in terms of neither
+the table nor the file. So the partition spec is checked first, and the
+append is refused with nothing written. Reading a partitioned table
+works, and <code>icebergr_partitions()</code> reports its spec.</p>
+<p><strong>Row-level deletes and <code>MERGE</code>.</strong>
+<code>iceberg-rust</code> 0.10 can write an equality delete file but has
+no transaction action that commits one. Reading merge-on-read tables
+another engine wrote works: both positional and equality deletes are
+applied.</p>
+<p><strong>Overwrites.</strong> <code>fast_append</code> is the only way
+0.10 can add files to a table.</p>
+<p>That split, refusing loudly here while reading whatever anyone else
+wrote, is deliberate. A narrow surface that is correct is worth more
+than a broad one that commits something subtly wrong, and the format is
+designed so that a client which does not implement a feature can still
+read tables that use it <span class="citation">(The Apache Software
+Foundation 2026)</span>.</p>
+</div>
+<div id="checking-before-you-write" class="section level2">
+<h2>Checking before you write</h2>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">icebergr_table_exists</span>(catalog, <span class="st">&quot;shop.orders&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="fu">icebergr_table_exists</span>(catalog, <span class="st">&quot;shop.nothing_here&quot;</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co">#&gt; [1] FALSE</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="fu">icebergr_list_tables</span>(catalog, <span class="st">&quot;shop&quot;</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt; [1] &quot;orders&quot;</span></span></code></pre></div>
+<p><code>icebergr_properties()</code> reads the table’s properties, and
+returns a zero-row tibble when it has none, as a freshly created table
+does:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">icebergr_properties</span>(orders)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 2</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; # ℹ 2 variables: name &lt;chr&gt;, value &lt;chr&gt;</span></span></code></pre></div>
+<p>Setting them needs an <code>update_properties</code> transaction,
+which is also out of scope for this version.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-armbrust2020delta" class="csl-entry">
+Armbrust, Michael, Tathagata Das, Sameer Paranjpye, Reynold Xin,
+Shixiong Zhu, Ali Ghodsi, Burak Yavuz, et al. 2020. <span>“Delta Lake:
+High-Performance <span>ACID</span> Table Storage over Cloud Object
+Stores.”</span> <em>Proceedings of the VLDB Endowment</em> 13 (12):
+3411–24. <a href="https://doi.org/10.14778/3415478.3415560">https://doi.org/10.14778/3415478.3415560</a>.
+</div>
+<div id="ref-armbrust2021lakehouse" class="csl-entry">
+Armbrust, Michael, Ali Ghodsi, Reynold Xin, and Matei Zaharia. 2021.
+<span>“Lakehouse: A New Generation of Open Platforms That Unify Data
+Warehousing and Advanced Analytics.”</span> In <em>Proceedings of the
+11th Conference on Innovative Data Systems Research (CIDR)</em>. <a href="https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf">https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf</a>.
+</div>
+<div id="ref-jain2023lakehouse" class="csl-entry">
+Jain, Paras, Peter Kraft, Conor Power, Tathagata Das, Ion Stoica, and
+Matei Zaharia. 2023. <span>“Analyzing and Comparing Lakehouse Storage
+Systems.”</span> In <em>Proceedings of the 13th Conference on Innovative
+Data Systems Research (CIDR)</em>. <a href="https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf">https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf</a>.
+</div>
+<div id="ref-icebergspec" class="csl-entry">
+The Apache Software Foundation. 2026. <span>“Apache <span>Iceberg</span>
+Table Spec.”</span> Apache Iceberg documentation. <a href="https://iceberg.apache.org/spec/">https://iceberg.apache.org/spec/</a>.
+</div>
+<div id="ref-thusoo2009hive" class="csl-entry">
+Thusoo, Ashish, Joydeep Sen Sarma, Namit Jain, Zheng Shao, Prasad
+Chakka, Suresh Anthony, Hao Liu, Pete Wyckoff, and Raghotham Murthy.
+2009. <span>“Hive: A Warehousing Solution over a <span>Map-Reduce</span>
+Framework.”</span> <em>Proceedings of the VLDB Endowment</em> 2 (2):
+1626–29. <a href="https://doi.org/10.14778/1687553.1687609">https://doi.org/10.14778/1687553.1687609</a>.
+</div>
+<div id="ref-zeng2023columnar" class="csl-entry">
+Zeng, Xinyu, Yulong Hui, Jiahong Shen, Andrew Pavlo, Wes McKinney, and
+Huanchen Zhang. 2023. <span>“An Empirical Evaluation of Columnar Storage
+Formats.”</span> <em>Proceedings of the VLDB Endowment</em> 17 (2):
+148–61. <a href="https://doi.org/10.14778/3626292.3626298">https://doi.org/10.14778/3626292.3626298</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

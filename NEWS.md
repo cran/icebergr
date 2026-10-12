@@ -1,3 +1,226 @@
+# icebergr 0.2.0
+
+No function was gained or lost. This release fixes an append that could leave a
+table unreadable, filters that returned the wrong rows without saying so,
+including on any table whose schema another engine has changed, and a hang in
+forked workers. It stops handing credentials to things that should not have
+them, and it installs where 0.1.0 could not: on Alpine Linux, and with the
+older Rust toolchain on CRAN's oldest macOS builder.
+
+## Bug fixes
+
+* **A filter on a column that older data files lack returned rows R would
+  not.** After another engine adds a column, the files written before it do
+  not have one, and `iceberg-rust` 0.10 answers a predicate on such a file
+  with a fixed value per operator, some of them TRUE: `b < 15` returned every
+  row of every older file, each with `b` `NA`, and so did `b <= 15`,
+  `!(b > 15)`, `s < "y"` and `!startsWith(s, "x")`. Each comparison now also
+  requires a value to be present, which is what R and Iceberg's own null rules
+  both say. Of 100 random filters over such a table, 15 disagreed with R
+  before and none do now.
+* **A read made after another engine changed the schema without writing
+  checked names against the wrong schema.** An `ALTER TABLE ... RENAME COLUMN`
+  makes a new schema current while the current snapshot still names the old
+  one, and `iceberg-rust` reads with the snapshot's. `filter` and `select`
+  were checked against the table's current schema instead, so the renamed
+  column could be selected by neither name, an added one passed the check and
+  failed in planning, and a read that found no rows reported columns one that
+  found rows did not. Names now resolve against the current snapshot's schema,
+  and selecting a column only the newer schema has says why it is refused.
+* **`case_sensitive = FALSE` broke filters on a table with both `id` and
+  `ID`.** Each name was resolved to the right column here, then bound again by
+  `iceberg-rust`, whose case-insensitive index keeps only one of the two, so a
+  filter on the other failed with "Can't convert datum", or, between columns
+  of the same type, read the wrong one. An empty result could also report the
+  wrong one of the pair.
+* **A decimal filter value below about 1e-5, or of 1e16 or more, was refused**
+  as "exponent notation" although R had written it out in full, so a
+  `decimal(18, 8)` column could not be compared with `0.00000002` at all.
+* **An append to a table registered from a metadata file outside the table's
+  `metadata` directory** wrote its Parquet and then failed to commit, leaving
+  the files behind. It is now refused before anything is written, as a
+  misnamed file already was. Both checks are now skipped for a REST catalog,
+  whose server chooses metadata locations itself and may name them as it
+  likes.
+* **`icebergr_create_table(location =)` recorded the path as typed.**
+  `"~/tables/events"` created a directory literally called `~` in the working
+  directory, a relative path left the table readable only from there, and
+  `""` tried to create `/metadata` at the filesystem root. A local path is now
+  expanded and made absolute, and an empty one is refused.
+* An infinite `Date` or `POSIXct` in a filter is refused as infinite, rather
+  than reaching `iceberg-rust` as a date to parse spelled "Inf".
+
+* **`icebergr_append(properties =)` could make a table unreadable.** A property
+  named `operation` was written as a second `"operation"` key in the table's
+  metadata, after which no engine could load, register or append to the table
+  again. Iceberg's own summary metrics were open to it too: a `deleted-records`
+  property was subtracted into `total-records`. Every key Iceberg writes into a
+  snapshot summary itself is now refused, and so is a name given twice.
+* **A timestamp filter was a microsecond out.** Fractional seconds were
+  truncated rather than rounded, and the double R holds for a microsecond
+  timestamp is often just below it, so `ts == x`, with `x` read back from the
+  same table, found no row for most values, and `>=` or `<` moved the boundary.
+* **A `POSIXlt` filter value or `as_of` was read in the wrong zone.** Its
+  wall-clock fields were taken as UTC, so a time from
+  `strptime(..., tz = "America/New_York")` filtered or travelled four or five
+  hours away from the instant it named.
+* **A filter now keeps the rows R would, where `NA` and `NaN` are concerned.**
+  It was handed to Iceberg with Iceberg's semantics, which differ from R's in
+  four ways. `x > 1` matched `NaN`, and only in files the scan read, since file
+  statistics leave `NaN` out: of two identical `NaN` rows, one could come back
+  and the other not. `is.na(x)` missed `NaN`. `x == 0` missed a stored `-0`.
+  And `!(x %in% c(1, 2))` dropped the rows where `x` is `NA`, which R keeps
+  because `%in%` is never `NA`. Checked against R's own evaluation of 3,200
+  random filters over columns holding all of these. String ordering still
+  follows Iceberg's byte order, which is R's only in the C locale.
+* **A column on the value side of a filter was read as a local variable.**
+  `filter = a > b`, with `b` a column, compared `a` against whatever local `b`
+  was in scope, silently. An Iceberg predicate cannot compare two columns, so
+  this is now an error that says so.
+* **A forked worker hung forever.** After any icebergr call in the parent, the
+  first call in a `parallel::mclapply()` worker waited on runtime threads that
+  do not survive `fork()`, with no error, and neither Ctrl-C nor the timeout
+  could end it. It now fails at once and points at `parallel::makeCluster()`.
+* **A data frame naming a column twice lost the second one** on append. It is
+  now refused.
+* `icebergr_register_table()` accepts an object-storage location such as
+  `s3://...`, which it used to refuse as a missing file, and no longer refuses
+  every registration on a REST catalog whose `warehouse` is a name rather than
+  a directory.
+* A catalog property given as a number or a logical reaches `iceberg-rust` in
+  the form it parses: `1e5` as `"100000"` rather than `"1e+05"`, and `TRUE` as
+  `"true"`. A property passed twice through `...` is refused rather than
+  silently keeping the last.
+* An `S3://` warehouse is object storage whatever the case of its scheme, as it
+  already was for forwarding credentials; it used to be put on the local disk.
+* The cleartext check recognises `http://LOCALHOST` and the rest of
+  127.0.0.0/8 as loopback, and counts a `header.Authorization`,
+  `header.Cookie` or `header.X-Api-Key` property as a credential.
+* `batch_size = 0` is refused rather than read as the default.
+* A large append no longer runs under a single timeout. Rows reach the Parquet
+  writer in slices, each its own call, so the five-minute ceiling bounds one
+  slice rather than the whole upload. The files written are byte-identical.
+* `icebergr_snapshots()` orders a v1 table's snapshots the same way on every
+  call, and its `summary` JSON lists keys in sorted rather than hash order.
+* An interrupt or a timeout while reading a batch is reported as such, rather
+  than as "the Iceberg scan panicked".
+
+## Credentials and robustness
+
+Closing the review findings tracked in
+[#2](https://github.com/PursuitOfDataScience/icebergr/issues/2).
+
+* **A credential is no longer sent over an unencrypted connection.** An
+  `http://` `uri`, or OAuth2 endpoint, is now an error when any credential
+  property is populated, rather than putting `Authorization: Bearer ...` on the
+  wire in the clear. A loopback address is exempt; set
+  `ICEBERGR_ALLOW_INSECURE_CREDENTIALS=true` to override.
+* **Ambient `AWS_*` credentials are forwarded only to object storage.** They
+  were previously added to every catalog regardless of type, so a third-party
+  REST catalog, which controls each table's `location` and can return its own
+  `s3.endpoint`, could have the client sign requests to a host it chose using
+  the user's keys. They now require `storage = "s3"`, `type = "glue"`, or an
+  `s3://` warehouse. The explicit `ICEBERGR_S3_*` variables are unaffected.
+* **`icebergr_register_table()` gains `confine`, defaulting to `TRUE`.** A
+  metadata file names absolute paths for its `location`, manifests and data
+  files, so registering one from an untrusted source read whatever it
+  nominated, and with the `s3` feature compiled in it could make an outbound
+  request from a nominally offline `memory` catalog. The file must now sit
+  inside the catalog's warehouse; pass `confine = FALSE` for the previous
+  behaviour.
+* An error carrying an upstream message no longer leaks a credential the
+  upstream echoed: `user:password@` in a URL, and the value of a secret query
+  or form parameter such as `client_secret` or `X-Amz-Signature`, are redacted,
+  whether it is written `key=value`, `key = value` or as a JSON field,
+  `"client_secret": "..."`. The module already promised this and only
+  delivered it for the key list.
+* `print()` on a catalog redacts `user:password@` in its `uri`.
+* **Every await now has a five-minute ceiling.** A catalog that accepted the
+  connection and never answered used to wedge the session permanently, since
+  `block_on` parks R's thread and Ctrl-C is only checked between evaluations.
+  `ICEBERGR_TIMEOUT_SECONDS` changes it; `0` disables it. The ceiling is per
+  request, per record batch or per slice of an append, so a long scan or a large
+  write is not truncated.
+* `ICEBERGR_WORKER_THREADS` is clamped to 64. It had no upper bound, so a typo
+  spawned threads until the allocator gave up.
+* `icebergr_scan_plan()` drains the plan into its five output columns as tasks
+  arrive, rather than collecting every `FileScanTask` and then walking the
+  collection five times. One row per task is inherent, but a task carries its
+  schema, its predicate and its delete-file list, none of which this function
+  returns, so holding all of them alongside the columns was avoidable.
+* **Ctrl-C now interrupts a blocking catalog or storage call.** `block_on` parks
+  R's own thread and R only tests its interrupt flag between evaluations, so an
+  interrupt used to do nothing at all until the call finished. The future is now
+  polled in 200 ms slices, and between slices, back on R's thread and outside
+  the runtime, R's flag is read and turned into an ordinary error. The timeout
+  above remains the backstop for where Ctrl-C cannot reach, such as a
+  non-interactive session. Closes
+  [#12](https://github.com/PursuitOfDataScience/icebergr/issues/12).
+* **An interrupt or a timeout now reports itself as a plain R error.** Both are
+  raised from Rust as panics, because the value they have to abandon is the
+  future's own type and there is nothing to return in its place, and a panic
+  prints a banner naming a source line and offering a backtrace before extendr
+  converts it. Pressing Ctrl-C should not look like a crash, so the panic hook
+  recognises this package's own deliberate aborts and stays quiet for them. A
+  genuine bug, such as an index out of bounds or an `unwrap()` on `NULL`, still
+  prints in full.
+
+## Installation
+
+* **Installs on Alpine Linux and other musl systems.** `vendor.tar.xz` was
+  compressed with a 128 MiB dictionary, and BusyBox's `tar`, which those
+  systems use, refuses anything over 64 MiB, reporting only "corrupted data".
+  CRAN's musl check recorded exactly that for 0.1.0. It is now 64 MiB, and
+  `tools/vendor.R` checks the archive it writes.
+* **`rustc` 1.88 or newer, down from 1.92**, measured by building the vendored
+  tree with 1.88.0 and running the test suite on it. CRAN's r-oldrel-macos-arm64
+  builder carries 1.91.1, so 0.1.0 could not be installed there. `uuid` is held
+  below 1.27, the first release to need 1.89.
+* Every Rust dependency is at its latest compatible version. `iceberg-rust` is
+  0.10.1, whose Rust code is identical to 0.10.0's. `rustls` 0.23.45 fixes
+  RUSTSEC-2026-0285, `tokio` 1.53.2 fixes several runtime and timer bugs, and
+  for the optional `s3` and `glue` features `h2` 0.4.19 fixes RUSTSEC-2026-0258.
+  Those two features still carry `quick-xml` 0.39.4, affected by
+  RUSTSEC-2026-0194 and RUSTSEC-2026-0195, because `opendal` 0.57, the version
+  `iceberg-rust` 0.10 requires, depends on it.
+* `icebergr_spec_support()` now reads the `iceberg-rust` and `arrow` versions
+  it reports out of `Cargo.lock` when the package is built, rather than from
+  strings typed into the source that a dependency bump could leave stale, and
+  `arrow_version` carries the patch number.
+
+## Documentation
+
+* `?icebergr_catalog` now says that a REST or Glue handle does not contact the
+  server: `iceberg-rust` connects on the first operation that needs it, so a
+  mistyped `uri`, an unreachable host or an unset credential all return a handle
+  and fail later, at `icebergr_list_namespaces()` or `icebergr_table()`. The
+  troubleshooting section of `vignette("catalog-configuration")` gained the same
+  note, since the symptom reads as a fault in those functions.
+* Corrections that were wrong in 0.1.0 or in this release's drafts:
+  `vignette("catalog-configuration")` gave `glue.region` as the Glue region
+  property, where the Glue client reads `region_name`, and showed SigV4 settings
+  for a REST catalog that `iceberg-rust` 0.10.0 does not support and silently
+  ignores. `vignette("time-travel")` said a rollback removes a snapshot-log
+  entry (it adds one) and that `iceberg-rust` lacks snapshot expiry (it lacks
+  rollback). The description no longer says that going through DuckDB rules out
+  writes, which DuckDB has supported for REST catalogs since 1.4.
+* Seven vignettes, up from two. `table-format` explains what a table format is
+  as distinct from a file format, and what the Hive directory convention could
+  not do; `pushdown` shows the three levels a filter acts at and how to confirm
+  each with `icebergr_scan_plan()` rather than assume it; `time-travel` covers
+  snapshot history and the two ways `as_of` is easy to misread; `writing` covers
+  appends, creation and registration, and why the operations it cannot do are
+  refused before anything reaches the warehouse; `types` covers the R, Arrow and
+  Iceberg correspondence and the five cases that need care. Each carries a
+  bibliography.
+* `icebergr_create_table()`'s behaviour is now documented rather than implied:
+  it reads a schema off the data frame and writes **no rows**, leaving a table
+  with no snapshot at all.
+* A `pkgdown` site at <https://pursuitofdatascience.github.io/icebergr/>.
+* A package logo, generated by `data-raw/logo.R`.
+* A much shorter README, with the packaging analysis it used to carry left in
+  `FEASIBILITY.md`, where it was already duplicated.
+
 # icebergr 0.1.0
 
 First release. A deliberately narrow but correct subset of Apache Iceberg for R,
@@ -37,7 +260,7 @@ built on `iceberg-rust` 0.10.0 via `extendr`.
 * Append-only writes: `icebergr_append()`, to an unpartitioned table whose
   metadata file is named the way Iceberg names them. Both of those are checked
   before any data file is written, because Iceberg only discovers them at the
-  commit — which would leave orphan Parquet in the warehouse and report the cause
+  commit, which would leave orphan Parquet in the warehouse and report the cause
   in terms of neither the table nor the file.
 * Nested types: `struct` and `list` columns read and write, a `struct` arriving as
   a data frame column. Iceberg cannot push a filter or a projection down *onto* a

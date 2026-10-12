@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Youzhi Yu University of Chicago" />
+
+
+<title>Time Travel: Snapshots, Timestamps and Rollbacks</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Time Travel: Snapshots, Timestamps and
+Rollbacks</h1>
+<h4 class="author">Youzhi Yu<br><span style="font-size:85%;">University
+of Chicago</span></h4>
+
+
+
+<p>Every Iceberg commit leaves the previous state of the table intact
+and readable <span class="citation">(The Apache Software Foundation
+2026)</span>. Nothing is overwritten, so a snapshot from before a bad
+load is still there, and reading it needs no backup, no restore and no
+cooperation from whoever wrote it.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_example_table</span>(<span class="at">rows =</span> <span class="dv">200</span>)</span></code></pre></div>
+<div id="snapshot-history" class="section level2">
+<h2>Snapshot history</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>history <span class="ot">&lt;-</span> <span class="fu">icebergr_snapshots</span>(tbl)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>history[, <span class="fu">c</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="st">&quot;snapshot_id&quot;</span>, <span class="st">&quot;parent_snapshot_id&quot;</span>, <span class="st">&quot;operation&quot;</span>, <span class="st">&quot;added_records&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="st">&quot;total_records&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>)]</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 5</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   snapshot_id         parent_snapshot_id  operation added_records total_records</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;               &lt;chr&gt;               &lt;chr&gt;             &lt;dbl&gt;         &lt;dbl&gt;</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt; 1 2381462530368170556 &lt;NA&gt;                append              200           200</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt; 2 8669719404476988653 2381462530368170556 append              200           400</span></span></code></pre></div>
+<p>The example table was built with two appends, so there are two
+snapshots and the second’s parent is the first.
+<code>total_records</code> is cumulative; <code>added_records</code> is
+what that commit contributed.</p>
+<p><strong>Snapshot ids are <code>character</code>, not
+numeric.</strong> Iceberg assigns them as random 64-bit integers and an
+R double carries only 53 bits of mantissa, so a numeric round trip would
+silently select a <em>different, existing</em> snapshot rather than
+fail. This is the one type decision in the package that exists purely to
+prevent a wrong answer:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">class</span>(history<span class="sc">$</span>snapshot_id)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; [1] &quot;character&quot;</span></span></code></pre></div>
+</div>
+<div id="reading-a-snapshot-by-id" class="section level2">
+<h2>Reading a snapshot by id</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>first <span class="ot">&lt;-</span> history<span class="sc">$</span>snapshot_id[[<span class="dv">1</span>]]</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">snapshot_id =</span> first)))</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt; [1] 200</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl)))</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt; [1] 400</span></span></code></pre></div>
+<p>The first snapshot holds one append; the current table holds both.
+Pushdown works against a historical snapshot exactly as it does against
+the current one, because the manifests of that snapshot are still on
+disk with their statistics intact:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">snapshot_id =</span> first)))</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl)))</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; [1] 2</span></span></code></pre></div>
+</div>
+<div id="reading-as-of-a-time" class="section level2">
+<h2>Reading as of a time</h2>
+<p><code>as_of</code> takes a time and resolves it to a snapshot:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">icebergr_scan</span>(tbl, <span class="at">as_of =</span> history<span class="sc">$</span>timestamp[[<span class="dv">1</span>]], <span class="at">select =</span> <span class="st">&quot;id&quot;</span>, <span class="at">limit =</span> <span class="dv">3</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 1</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt;      id</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; 1     1</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt; 2     2</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt; 3     3</span></span></code></pre></div>
+<p>Two things about that argument are worth being explicit about,
+because both are easy to get wrong.</p>
+<p><strong>It is a commit time, not a time in your data.</strong>
+<code>as_of</code> asks “what did this table look like then”, not “which
+rows are from then”. A <code>day</code> or <code>recorded_at</code>
+column is data; filter on it with <code>filter</code>.</p>
+<p><strong>It resolves against the snapshot log, not the snapshot
+list.</strong> Iceberg keeps both: the list of every snapshot that still
+exists, and the <em>log</em> of which snapshot was current at which
+time. A rollback adds a log entry pointing back at the earlier snapshot,
+while the snapshot it abandoned stays in the list with its own, later,
+timestamp. Resolving against the list would find that abandoned snapshot
+and read a state the table was rolled back <em>out of</em>;
+<code>icebergr</code> resolves against the log, so it does not.</p>
+<p>The same applies to a snapshot that only ever existed on another
+branch: present in the list, never in this branch’s log, and so never
+selected by <code>as_of</code>. It is still reachable by id, which is
+the right split: an explicit id is a request for a specific state, while
+a time is a request for the state this table was in.</p>
+</div>
+<div id="the-schema-travels-too" class="section level2">
+<h2>The schema travels too</h2>
+<p>Iceberg records a schema per snapshot, so a column that has since
+been renamed or dropped is still nameable as of the snapshot that had
+it:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">identical</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  <span class="fu">icebergr_schema</span>(tbl, <span class="at">snapshot_id =</span> first)<span class="sc">$</span>name,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">icebergr_schema</span>(tbl)<span class="sc">$</span>name</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Nothing was renamed here, so the two agree. Where they would not,
+<code>filter</code> and <code>select</code> are resolved against the
+schema of the snapshot actually being read, not the current one. That is
+what makes a historical read reproducible: the names that worked then
+still work, and you do not have to know what happened to the schema in
+between.</p>
+<p>A read of the current state is a read of the current snapshot, and
+follows its schema in the same way. That is the table’s current schema
+too, except straight after another engine changes the schema without
+writing anything, as an <code>ALTER TABLE ... ADD COLUMN</code> does:
+until the next commit, a read still has the columns the current snapshot
+was written with, while <code>icebergr_schema()</code> already shows the
+new ones.</p>
+</div>
+<div id="isolation-and-why-a-handle-looks-stale" class="section level2">
+<h2>Isolation, and why a handle looks stale</h2>
+<p>A table handle is bound to a snapshot. Another session’s commit does
+not change what your handle reads:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>current <span class="ot">&lt;-</span> <span class="fu">icebergr_snapshots</span>(tbl)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>tbl2 <span class="ot">&lt;-</span> <span class="fu">icebergr_reload</span>(tbl)</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="fu">identical</span>(<span class="fu">nrow</span>(<span class="fu">icebergr_snapshots</span>(tbl2)), <span class="fu">nrow</span>(current))</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p><code>icebergr_reload()</code> is how you opt in to seeing new
+commits. Until you call it, every scan off that handle reads one
+consistent state: snapshot isolation in the sense of <span class="citation">Berenson et al. (1995)</span>, obtained from
+immutability rather than from locking. All three lakehouse formats get
+it the same way <span class="citation">(Jain et al. 2023)</span>.</p>
+<p>The practical consequence: two scans off the same handle are
+guaranteed to agree, which is what you want when a report runs several
+queries and has to add up.</p>
+</div>
+<div id="what-is-not-here" class="section level2">
+<h2>What is not here</h2>
+<p>Snapshot expiry, which deletes old snapshots and the files only they
+reference, is a maintenance operation this version does not expose, and
+neither is rollback itself. <code>iceberg-rust</code> 0.10 has a
+transaction action for expiry and none for rollback, so the first is a
+gap in this package and the second is one upstream:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>features <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()<span class="sc">$</span>features</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>features[</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="fu">grepl</span>(<span class="st">&quot;snapshot|maintenance&quot;</span>, features<span class="sc">$</span>feature, <span class="at">ignore.case =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;supported&quot;</span>, <span class="st">&quot;reason&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>]</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 3</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;   feature                  supported reason                                     </span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                    &lt;lgl&gt;     &lt;chr&gt;                                      </span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; 1 Snapshot time travel     TRUE      &lt;NA&gt;                                       </span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; 2 Snapshot history         TRUE      &lt;NA&gt;                                       </span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt; 3 Compaction / maintenance FALSE     Compaction needs a rewrite action iceberg-…</span></span></code></pre></div>
+<p>Reading a table that another engine has rolled back or expired works
+normally: time travel is a read, and reading by snapshot id or by time
+is all here.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-berenson1995critique" class="csl-entry">
+Berenson, Hal, Philip A. Bernstein, Jim Gray, Jim Melton, Elizabeth J.
+O’Neil, and Patrick E. O’Neil. 1995. <span>“A Critique of <span>ANSI
+SQL</span> Isolation Levels.”</span> In <em>Proceedings of the 1995 ACM
+SIGMOD International Conference on Management of Data</em>, 1–10. <a href="https://doi.org/10.1145/223784.223785">https://doi.org/10.1145/223784.223785</a>.
+</div>
+<div id="ref-jain2023lakehouse" class="csl-entry">
+Jain, Paras, Peter Kraft, Conor Power, Tathagata Das, Ion Stoica, and
+Matei Zaharia. 2023. <span>“Analyzing and Comparing Lakehouse Storage
+Systems.”</span> In <em>Proceedings of the 13th Conference on Innovative
+Data Systems Research (CIDR)</em>. <a href="https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf">https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf</a>.
+</div>
+<div id="ref-icebergspec" class="csl-entry">
+The Apache Software Foundation. 2026. <span>“Apache <span>Iceberg</span>
+Table Spec.”</span> Apache Iceberg documentation. <a href="https://iceberg.apache.org/spec/">https://iceberg.apache.org/spec/</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

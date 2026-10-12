@@ -148,13 +148,20 @@ cargo_tree <- function(extra) {
 
 root <- sub("^([^ ]+) v([^ ]+).*$", "\\1-\\2", cargo_tree(c("--prefix", "none", "--format", "{p}"))[1])
 
-compiled <- unique(unlist(lapply(targets, function(target) {
+# Kept as cargo printed them -- "name vX.Y.Z" -- so that the name and the
+# version can each be taken from their own field. Deriving the name by stripping
+# a version off the directory string instead does not survive build metadata: of
+# the 443 packages in Cargo.lock, `wasi-0.11.1+wasi-snapshot-preview1` and
+# `wasip2-1.0.4+wasi-0.2.12` both carry hyphens after the `+`, and any
+# strip-the-tail pattern recovers the wrong name for them.
+tree_lines <- unique(unlist(lapply(targets, function(target) {
   message("  resolving build graph for ", target)
   lines <- cargo_tree(c("--target", target, "--prefix", "none", "--format", "{p}"))
-  lines <- lines[grepl("^[^ ]+ v[0-9]", lines)]
-  sub("^([^ ]+) v([^ ]+).*$", "\\1-\\2", lines)
+  lines[grepl("^[^ ]+ v[0-9]", lines)]
 }), use.names = FALSE))
-compiled <- setdiff(compiled, root)
+
+compiled <- setdiff(sub("^([^ ]+) v([^ ]+).*$", "\\1-\\2", tree_lines), root)
+compiled_names <- unique(sub("^([^ ]+) v.*$", "\\1", tree_lines))
 
 vendored <- basename(crate_dirs())
 missing <- setdiff(compiled, vendored)
@@ -162,6 +169,34 @@ if (length(missing)) {
   stop(
     "cargo reports crates that are not in the vendor tree: ",
     paste(missing, collapse = ", ")
+  )
+}
+
+# The check above catches cargo naming a crate the tree does not have. It cannot
+# catch the opposite and more dangerous case: `cargo tree` succeeding while the
+# line filter above matches nothing, because its output format changed. That
+# leaves `compiled` empty or thinly populated, every crate gets stubbed down to
+# its manifest, and the archive is written with reassuring per-stage numbers.
+#
+# Nothing downstream notices. `cargo metadata --offline --locked` still passes,
+# because a stub keeps its Cargo.toml and cargo only has to *find* a locked
+# package, not read it -- which is the same property that makes stubbing work at
+# all. Only a real compile fails, on CI, minutes later.
+#
+# So: assert by name that the crates a default build certainly compiles are in
+# the set. Names rather than a count, because a count has to be picked and then
+# maintained, while "a build that does not compile parquet is not this package"
+# stays true.
+must_compile <- c("iceberg", "parquet", "arrow", "tokio", "serde_json")
+absent <- setdiff(must_compile, compiled_names)
+if (length(absent)) {
+  stop(
+    "the compiled set is implausible: it does not include ",
+    paste(absent, collapse = ", "),
+    ".\n  `cargo tree` returned ", length(compiled), " crates out of ",
+    length(vendored), " vendored.",
+    "\n  Check that `cargo tree --format '{p}'` still prints `name vX.Y.Z`;",
+    " the filter in cargo_tree()'s caller depends on it."
   )
 }
 message(sprintf(
@@ -464,11 +499,15 @@ message("  cargo metadata --offline --locked: OK")
 if (file.exists(archive)) invisible(file.remove(archive))
 
 # pb=0 tells LZMA2 that matches are not aligned to a 4-byte boundary, which is
-# true of text and worth ~1% here; the dictionary is sized to hold the whole
-# tree in one window so that the four hundred near-identical licence files and
-# the repeated generated code deduplicate against each other. Decompression
-# needs the dictionary in memory, so it is capped at 128 MiB rather than raised
-# to fit with room to spare.
+# true of text and worth ~1% here.
+#
+# The dictionary is 64 MiB, the -9 preset's own, and must not be raised.
+# BusyBox's xz decoder, which is what `tar` uses on Alpine and the other musl
+# systems, refuses any stream whose dictionary is larger than that, and says so
+# only as "tar: corrupted data" followed by "tar: short read". 0.1.0 shipped
+# with a 128 MiB dictionary, sized to hold the whole tree in one window, and
+# that is exactly the failure CRAN's musl check recorded for it. The bigger
+# window was worth 80 KB of archive.
 message("Creating ", archive)
 tarball <- tempfile(fileext = ".tar")
 status <- system2(
@@ -482,7 +521,7 @@ if (status != 0L) {
 status <- system2(
   "xz",
   c(
-    "--check=crc32", "--lzma2=preset=9e,dict=128MiB,pb=0", "--threads=1",
+    "--check=crc32", "--lzma2=preset=9e,dict=64MiB,pb=0", "--threads=1",
     "--stdout", shQuote(tarball)
   ),
   stdout = archive
@@ -492,15 +531,37 @@ if (status != 0L) {
   stop("`xz` failed with status ", status)
 }
 
-size_mb <- file.size(archive) / 1024^2
+# Read back off the archive rather than trusted to the flag above, which is one
+# edit away from undoing the musl fix without any build here noticing: GNU tar
+# and every other xz decoder accept a larger dictionary without complaint.
+listing <- system2("xz", c("--robot", "--list", "-vv", shQuote(archive)), stdout = TRUE)
+blocks <- grep("^block\t", listing, value = TRUE)
+dicts <- regmatches(blocks, regexec("dict=([0-9]+)([KMG])iB", blocks))
+dict_bytes <- vapply(dicts, function(m) {
+  if (length(m) != 3L) {
+    return(NA_real_)
+  }
+  as.numeric(m[[2L]]) * 1024^match(m[[3L]], c("K", "M", "G"))
+}, numeric(1))
+if (!length(dict_bytes) || anyNA(dict_bytes) || any(dict_bytes > 64 * 1024^2)) {
+  stop(
+    "vendor.tar.xz must be compressed with an xz dictionary of at most 64 MiB, ",
+    "or BusyBox tar cannot unpack it. `xz --robot -lvv` reported:\n",
+    paste(blocks, collapse = "\n")
+  )
+}
+message("  xz dictionary: ", max(dict_bytes) / 1024^2, " MiB (BusyBox's limit is 64)")
+
+archive_bytes <- file.size(archive)
+size_mb <- archive_bytes / 1024^2
 message(sprintf(
   "\n%s: %.2f MB, from %d crates totalling %.1f MB on disk (was %.1f MB).",
   archive, size_mb, length(vendored), dir_bytes(vendor_dir) / 1024^2,
   total_before / 1024^2
 ))
 
-# Where the weight actually is. A size exemption request is far easier to make
-# with this list in hand than with a single total.
+# Where the weight actually is. When the total does move, this list is what
+# says which subtree moved it; a single number cannot.
 sizes <- vapply(crate_dirs(), dir_bytes, numeric(1))
 top <- head(order(sizes, decreasing = TRUE), 15L)
 message("\nLargest vendored crates (uncompressed):")
@@ -508,11 +569,30 @@ for (i in top) {
   message(sprintf("  %8.1f MB  %s", sizes[[i]] / 1024^2, basename(names(sizes)[[i]])))
 }
 message("")
-if (size_mb > 10) {
+
+# What this number is for, and what it is not for.
+#
+# CRAN's 10 MB guidance was answered once, at 0.1.0, and the exemption was
+# granted with the arithmetic in cran-comments.md; the released archive was
+# 10,970,960 bytes. So the bar here is not "get under 10 MB" -- the only
+# feature-shaped lever left is Parquet's Brotli codec, worth about 0.6 MB, and
+# spending it would cost the ability to read a Brotli-compressed data file
+# another engine wrote. The bar is "do not grow": a new dependency subtree is
+# what would need explaining, not the figure that is already on the record.
+#
+# The same reasoning, and the same numbers, are in the two CI guards that fail
+# the build when the archive or the tarball passes a ceiling.
+released <- 10970960
+delta <- archive_bytes - released
+message(sprintf(
+  "Archive: %s bytes (%+d against the %s released in 0.1.0).",
+  format(archive_bytes, big.mark = ","), delta, format(released, big.mark = ",")
+))
+if (abs(delta) > 200000) {
   message(
-    "NOTE: CRAN prefers source tarballs under 10 MB. At ", round(size_mb, 2),
-    " MB the archive alone is over that, so the submission needs an\n",
-    "explicit exemption request; see cran-comments.md and FEASIBILITY.md."
+    "NOTE: that is a real change rather than xz/tar version noise, which moves\n",
+    "this by about 13 KB. Check the per-crate sizes above for a subtree that\n",
+    "arrived or left, and say which in cran-comments.md."
   )
 }
 

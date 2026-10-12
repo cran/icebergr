@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Youzhi Yu University of Chicago" />
+
+
+<title>What Iceberg Is, and What It Fixes</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">What Iceberg Is, and What It Fixes</h1>
+<h4 class="author">Youzhi Yu<br><span style="font-size:85%;">University
+of Chicago</span></h4>
+
+
+
+<p>A table format is not a file format. Parquet says how one file is
+laid out; Iceberg says which files constitute a table right now, what
+their schema is, and what the table looked like an hour ago. This
+vignette is about that distinction, because it is the reason reading
+Parquet is not the same as reading an Iceberg table, and the reason
+<code>arrow</code> cannot substitute for a client.</p>
+<div id="the-problem-inherited-from-hive" class="section level2">
+<h2>The problem inherited from Hive</h2>
+<p>The original convention, from Hive <span class="citation">(Thusoo et
+al. 2009)</span>, was that a table <em>is</em> a directory, and a
+partition <em>is</em> a subdirectory. Everything follows from that: to
+know what a table contains, list the filesystem.</p>
+<p>Three consequences made it unworkable at scale, and they are what the
+lakehouse table formats were designed against <span class="citation">(Armbrust et al. 2021)</span>:</p>
+<ul>
+<li><strong>No atomicity.</strong> A writer that must add ten files has
+no way to make the ten appear together. Readers see a partial
+commit.</li>
+<li><strong>Listing is the query plan.</strong> Planning cost scales
+with the number of files and, on object storage, each listing is a
+network round trip with eventual consistency behind it.</li>
+<li><strong>Schema is a directory convention.</strong> Renaming a
+column, or changing how a table is partitioned, means rewriting paths,
+so in practice nobody does it.</li>
+</ul>
+<p>Delta Lake <span class="citation">(Armbrust et al. 2020)</span> and
+Iceberg <span class="citation">(The Apache Software Foundation
+2026a)</span> answer the same question in the same shape (keep the file
+list in metadata, commit by swapping a pointer) and differ in how that
+metadata is organised. A comparison of the three main implementations,
+with a benchmark, is in <span class="citation">Jain et al.
+(2023)</span>.</p>
+</div>
+<div id="what-iceberg-keeps-instead" class="section level2">
+<h2>What Iceberg keeps instead</h2>
+<p>Iceberg’s metadata is a tree, and every level of it is immutable:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Level</th>
+<th>Holds</th>
+<th>Written as</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Table metadata</td>
+<td>current schema, partition specs, snapshot log, properties</td>
+<td>JSON</td>
+</tr>
+<tr class="even">
+<td>Snapshot</td>
+<td>one manifest list: the state of the table at one instant</td>
+<td>referenced from the metadata</td>
+</tr>
+<tr class="odd">
+<td>Manifest list</td>
+<td>the manifests in this snapshot, with partition ranges</td>
+<td>Avro</td>
+</tr>
+<tr class="even">
+<td>Manifest</td>
+<td>data files, with per-column bounds, null counts and row counts</td>
+<td>Avro</td>
+</tr>
+<tr class="odd">
+<td>Data file</td>
+<td>the rows</td>
+<td>Parquet, ORC or Avro</td>
+</tr>
+</tbody>
+</table>
+<p>A commit writes new metadata and then atomically swaps the pointer to
+it. Nothing is mutated, which is why a reader mid-commit sees the old
+table rather than half of the new one, and why yesterday’s snapshot is
+still readable today: it is still there, and still consistent.</p>
+<p><code>icebergr</code> exposes each level. The schema and partition
+spec come from the table metadata:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_example_table</span>(<span class="at">rows =</span> <span class="dv">200</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">icebergr_schema</span>(tbl)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 5</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt;   field_id name        type        required doc  </span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt;      &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">#&gt; 1        1 id          int         FALSE    &lt;NA&gt; </span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">#&gt; 2        2 event       string      FALSE    &lt;NA&gt; </span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">#&gt; 3        3 amount      double      FALSE    &lt;NA&gt; </span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="co">#&gt; 4        4 day         date        FALSE    &lt;NA&gt; </span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="co">#&gt; 5        5 recorded_at timestamptz FALSE    &lt;NA&gt;</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="fu">icebergr_partitions</span>(tbl)</span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="co">#&gt; # A tibble: 0 × 6</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="co">#&gt; # ℹ 6 variables: spec_id &lt;int&gt;, field_id &lt;int&gt;, name &lt;chr&gt;, transform &lt;chr&gt;,</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="co">#&gt; #   source_id &lt;int&gt;, source_name &lt;chr&gt;</span></span></code></pre></div>
+<p>Its snapshots are the history:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">icebergr_snapshots</span>(tbl)[, <span class="fu">c</span>(<span class="st">&quot;snapshot_id&quot;</span>, <span class="st">&quot;operation&quot;</span>, <span class="st">&quot;added_records&quot;</span>)]</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 3</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;   snapshot_id         operation added_records</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;               &lt;chr&gt;             &lt;dbl&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; 1 5803810996888657288 append              200</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt; 2 4604766143461395373 append              200</span></span></code></pre></div>
+<p>And the manifests are what makes a scan plan possible without opening
+any data file, since <code>icebergr_scan_plan()</code> reads bounds out
+of the manifest rather than out of Parquet:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>plan <span class="ot">&lt;-</span> <span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl))</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># `data_file_path` is elided: it is an absolute path in a temporary</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co"># warehouse, so it would differ on every machine.</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>plan[, <span class="fu">c</span>(<span class="st">&quot;record_count&quot;</span>, <span class="st">&quot;file_size_in_bytes&quot;</span>)]</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 2</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;   record_count file_size_in_bytes</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;              &lt;dbl&gt;</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt; 1          200               4901</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt; 2          200               4998</span></span></code></pre></div>
+</div>
+<div id="why-the-column-statistics-matter-so-much" class="section level2">
+<h2>Why the column statistics matter so much</h2>
+<p>Because per-column bounds live in the manifest, a filter can
+eliminate a file before it is opened. That is the whole performance
+argument, and it is inherited twice over: once from the manifest, and
+once from Parquet’s own footer, whose row-group statistics allow the
+same trick within a file.</p>
+<p>The columnar layout underneath is Dremel’s <span class="citation">(Melnik et al. 2010)</span>: repetition and definition
+levels, which is how a nested <code>struct</code> or <code>list</code>
+survives being stored one column at a time. The gains from reading only
+the columns a query needs, and only the row ranges that can match, are
+the ones measured for column stores generally in <span class="citation">Abadi, Madden, and Hachem (2008)</span>, and
+re-measured for Parquet and ORC specifically, with their modern
+encodings, in <span class="citation">Zeng et al. (2023)</span>.</p>
+<p><code>vignette(&quot;pushdown&quot;)</code> shows what <code>icebergr</code>
+pushes down and how to confirm it happened.</p>
+</div>
+<div id="concurrency-without-a-lock-server" class="section level2">
+<h2>Concurrency, without a lock server</h2>
+<p>Iceberg commits optimistically: a writer reads the current metadata,
+prepares a new snapshot, and swaps the pointer only if the pointer has
+not moved. If it has, the commit fails and is retried. All three
+lakehouse formats work this way <span class="citation">(Jain et al.
+2023)</span>.</p>
+<p>What a reader gets from this is snapshot isolation in the sense of
+<span class="citation">Berenson et al. (1995)</span>: a scan runs
+entirely against one snapshot, so a long-running read never observes a
+write that landed halfway through it. In <code>icebergr</code> this is
+explicit rather than incidental, because a table handle <em>is</em> a
+snapshot. Another session’s commit is invisible until you ask for
+it:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_reload</span>(tbl) <span class="co"># now points at the newest snapshot</span></span></code></pre></div>
+<p>That is a feature, not a staleness bug: two scans off the same handle
+are guaranteed to agree.</p>
+</div>
+<div id="where-r-sits-in-this" class="section level2">
+<h2>Where R sits in this</h2>
+<p>The design that makes an R client possible at all is the one
+described in <span class="citation">Pedreira et al. (2023)</span>: a
+data system decomposed into reusable components with Arrow as the
+interchange format between them, rather than a monolith with one front
+end. <code>icebergr</code> uses three of those components
+(<code>iceberg-rust</code> <span class="citation">(The Apache Software
+Foundation 2026b)</span> for metadata and planning, Parquet readers
+underneath it, and the Arrow C stream interface <span class="citation">(The Apache Software Foundation 2026c)</span> to hand
+the result to R) and adds no execution engine of its own.</p>
+<p>The alternative route, going through DuckDB <span class="citation">(Raasveldt and Mühleisen 2019)</span>, is a good one
+for queries and remains available; since version 1.4 it can also write
+to a table in a REST catalog. What a query engine hands back is the
+answer to a query. A client hands back the table: a handle bound to one
+snapshot, the schema as of any of them, and the plan before a byte of
+data is read. Engines whose whole design centres on this format, Photon
+for instance <span class="citation">(Behm et al. 2022)</span>, treat the
+metadata as a first-class input for the same reason.</p>
+</div>
+<div id="what-this-package-does-not-do" class="section level2">
+<h2>What this package does not do</h2>
+<p>Iceberg’s spec is larger than any single client implements, and this
+package is narrower than <code>iceberg-rust</code>.
+<code>icebergr_spec_support()</code> reports the boundary for your own
+build, and distinguishes the two cases, missing here versus missing
+upstream:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>support <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>features <span class="ot">&lt;-</span> support<span class="sc">$</span>features</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="fu">head</span>(features[</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>  <span class="sc">!</span><span class="fu">is.na</span>(features<span class="sc">$</span>supported) <span class="sc">&amp;</span> <span class="sc">!</span>features<span class="sc">$</span>supported,</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;reason&quot;</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>], <span class="dv">8</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; # A tibble: 8 × 2</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   feature                   reason                                              </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;                     &lt;chr&gt;                                               </span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 1 AWS Glue catalog          Requires the optional &#39;glue&#39; Cargo feature          </span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a><span class="co">#&gt; 2 Object storage (S3)       Requires the optional &#39;s3&#39; Cargo feature            </span></span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="co">#&gt; 3 Nested field pushdown     iceberg-rust cannot plan a scan filtered or project…</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co">#&gt; 4 Table properties (write)  Needs an update_properties transaction; out of scop…</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="co">#&gt; 5 Hadoop/filesystem catalog Not implemented in iceberg-rust; use type = &#39;memory&#39;</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a><span class="co">#&gt; 6 Row limit pushdown        iceberg-rust has no row limit in its scan API; limi…</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a><span class="co">#&gt; 7 Row-level deletes (write) iceberg-rust 0.10 can write an equality delete file…</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; 8 MERGE / upsert            Needs row-level deletes plus an overwrite, neither …</span></span></code></pre></div>
+<p>Reading a table another engine wrote with features this package does
+not implement still works, as long as the scan does not need them. That
+is the property the format was designed to have.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-abadi2008column" class="csl-entry">
+Abadi, Daniel J., Samuel R. Madden, and Nabil Hachem. 2008.
+<span>“Column-Stores Vs. Row-Stores: How Different Are They
+Really?”</span> In <em>Proceedings of the 2008 ACM SIGMOD International
+Conference on Management of Data</em>, 967–80. <a href="https://doi.org/10.1145/1376616.1376712">https://doi.org/10.1145/1376616.1376712</a>.
+</div>
+<div id="ref-armbrust2020delta" class="csl-entry">
+Armbrust, Michael, Tathagata Das, Sameer Paranjpye, Reynold Xin,
+Shixiong Zhu, Ali Ghodsi, Burak Yavuz, et al. 2020. <span>“Delta Lake:
+High-Performance <span>ACID</span> Table Storage over Cloud Object
+Stores.”</span> <em>Proceedings of the VLDB Endowment</em> 13 (12):
+3411–24. <a href="https://doi.org/10.14778/3415478.3415560">https://doi.org/10.14778/3415478.3415560</a>.
+</div>
+<div id="ref-armbrust2021lakehouse" class="csl-entry">
+Armbrust, Michael, Ali Ghodsi, Reynold Xin, and Matei Zaharia. 2021.
+<span>“Lakehouse: A New Generation of Open Platforms That Unify Data
+Warehousing and Advanced Analytics.”</span> In <em>Proceedings of the
+11th Conference on Innovative Data Systems Research (CIDR)</em>. <a href="https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf">https://www.cidrdb.org/cidr2021/papers/cidr2021_paper17.pdf</a>.
+</div>
+<div id="ref-behm2022photon" class="csl-entry">
+Behm, Alexander, Shoumik Palkar, Utkarsh Agarwal, Timothy Armstrong,
+David Cashman, Ankur Dave, Todd Greenstein, et al. 2022. <span>“Photon:
+A Fast Query Engine for Lakehouse Systems.”</span> In <em>Proceedings of
+the 2022 ACM SIGMOD International Conference on Management of Data</em>,
+2326–39. <a href="https://doi.org/10.1145/3514221.3526054">https://doi.org/10.1145/3514221.3526054</a>.
+</div>
+<div id="ref-berenson1995critique" class="csl-entry">
+Berenson, Hal, Philip A. Bernstein, Jim Gray, Jim Melton, Elizabeth J.
+O’Neil, and Patrick E. O’Neil. 1995. <span>“A Critique of <span>ANSI
+SQL</span> Isolation Levels.”</span> In <em>Proceedings of the 1995 ACM
+SIGMOD International Conference on Management of Data</em>, 1–10. <a href="https://doi.org/10.1145/223784.223785">https://doi.org/10.1145/223784.223785</a>.
+</div>
+<div id="ref-jain2023lakehouse" class="csl-entry">
+Jain, Paras, Peter Kraft, Conor Power, Tathagata Das, Ion Stoica, and
+Matei Zaharia. 2023. <span>“Analyzing and Comparing Lakehouse Storage
+Systems.”</span> In <em>Proceedings of the 13th Conference on Innovative
+Data Systems Research (CIDR)</em>. <a href="https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf">https://www.cidrdb.org/cidr2023/papers/p92-jain.pdf</a>.
+</div>
+<div id="ref-melnik2010dremel" class="csl-entry">
+Melnik, Sergey, Andrey Gubarev, Jing Jing Long, Geoffrey Romer, Shiva
+Shivakumar, Matt Tolton, and Theo Vassilakis. 2010. <span>“Dremel:
+Interactive Analysis of <span>Web-Scale</span> Datasets.”</span>
+<em>Proceedings of the VLDB Endowment</em> 3 (1-2): 330–39. <a href="https://doi.org/10.14778/1920841.1920886">https://doi.org/10.14778/1920841.1920886</a>.
+</div>
+<div id="ref-pedreira2023composable" class="csl-entry">
+Pedreira, Pedro, Orri Erling, Konstantinos Karanasos, Scott Schneider,
+Wes McKinney, Satya R. Valluri, Mohamed Zait, and Jacques Nadeau. 2023.
+<span>“The Composable Data Management System Manifesto.”</span>
+<em>Proceedings of the VLDB Endowment</em> 16 (10): 2679–85. <a href="https://doi.org/10.14778/3603581.3603604">https://doi.org/10.14778/3603581.3603604</a>.
+</div>
+<div id="ref-raasveldt2019duckdb" class="csl-entry">
+Raasveldt, Mark, and Hannes Mühleisen. 2019. <span>“<span>DuckDB</span>:
+An Embeddable Analytical Database.”</span> In <em>Proceedings of the
+2019 ACM SIGMOD International Conference on Management of Data</em>,
+1981–84. <a href="https://doi.org/10.1145/3299869.3320212">https://doi.org/10.1145/3299869.3320212</a>.
+</div>
+<div id="ref-icebergspec" class="csl-entry">
+The Apache Software Foundation. 2026a. <span>“Apache
+<span>Iceberg</span> Table Spec.”</span> Apache Iceberg documentation.
+<a href="https://iceberg.apache.org/spec/">https://iceberg.apache.org/spec/</a>.
+</div>
+<div id="ref-icebergrust" class="csl-entry">
+———. 2026b. <span>“<span class="nocase">iceberg-rust</span>: Apache
+<span>Iceberg</span> Official Native <span>Rust</span>
+Implementation.”</span> <a href="https://github.com/apache/iceberg-rust">https://github.com/apache/iceberg-rust</a>.
+</div>
+<div id="ref-arrowcdata" class="csl-entry">
+———. 2026c. <span>“The <span>Arrow</span> <span>C</span> Data Interface
+and <span>C</span> Stream Interface.”</span> Apache Arrow documentation.
+<a href="https://arrow.apache.org/docs/format/CDataInterface.html">https://arrow.apache.org/docs/format/CDataInterface.html</a>.
+</div>
+<div id="ref-thusoo2009hive" class="csl-entry">
+Thusoo, Ashish, Joydeep Sen Sarma, Namit Jain, Zheng Shao, Prasad
+Chakka, Suresh Anthony, Hao Liu, Pete Wyckoff, and Raghotham Murthy.
+2009. <span>“Hive: A Warehousing Solution over a <span>Map-Reduce</span>
+Framework.”</span> <em>Proceedings of the VLDB Endowment</em> 2 (2):
+1626–29. <a href="https://doi.org/10.14778/1687553.1687609">https://doi.org/10.14778/1687553.1687609</a>.
+</div>
+<div id="ref-zeng2023columnar" class="csl-entry">
+Zeng, Xinyu, Yulong Hui, Jiahong Shen, Andrew Pavlo, Wes McKinney, and
+Huanchen Zhang. 2023. <span>“An Empirical Evaluation of Columnar Storage
+Formats.”</span> <em>Proceedings of the VLDB Endowment</em> 17 (2):
+148–61. <a href="https://doi.org/10.14778/3626292.3626298">https://doi.org/10.14778/3626292.3626298</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

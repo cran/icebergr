@@ -1,320 +1,103 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+# icebergr <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
-# icebergr
+<!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/icebergr)](https://CRAN.R-project.org/package=icebergr)
+[![CRAN downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fcranlogs.r-pkg.org%2Fdownloads%2Ftotal%2F1990-01-01%3A2030-01-01%2Ficebergr&query=%24%5B0%5D.downloads&label=downloads&color=blue)](https://CRAN.R-project.org/package=icebergr)
+[![R-CMD-check](https://github.com/PursuitOfDataScience/icebergr/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/PursuitOfDataScience/icebergr/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
 
-When an organisation's data moves into Apache Iceberg, R stops being a
-first-class citizen and becomes the thing you export CSVs to.
+**Read, time-travel and append to Apache Iceberg tables, straight from R.**\
+No Spark, no JVM, no SQL engine in the middle. 🧊
 
-**R is the only major data language without an Apache Iceberg client.** Apache
-governs implementations in Java, Python (PyIceberg), Rust and Go. There is none
-for R. Until now the only route was to read Iceberg tables through DuckDB as an
-intermediary, which means no writes, no schema access, no snapshot management,
-no catalog integration and no partition information.
-
-Meanwhile Snowflake, Databricks, BigQuery, AWS and Dremio have all standardised
-on Iceberg as the open table format. Parquet is well served in R by `arrow`, and
-Delta Lake has a community Rust binding; Iceberg had nothing.
-
-`icebergr` talks to Iceberg directly, through
-[`iceberg-rust`](https://github.com/apache/iceberg-rust), the Apache-governed
-Rust implementation, via `extendr`. Arrow is the interchange layer throughout, so
-data crosses from Rust into R over the Arrow C stream interface without a
-serialisation round trip.
-
-## Installation
-
-CRAN is the intended destination; `icebergr` is not there yet. See
-[CRAN status](#cran-status) for what has to clear first. Until then, install from
-GitHub.
+## 📦 Installation
 
 ```r
-# install.packages("pak")
-pak::pak("PursuitOfDataScience/icebergr")
+# the CRAN release
+install.packages("icebergr")
+
+# or the development version, from r-universe
+install.packages("icebergr", repos = c(
+  "https://pursuitofdatascience.r-universe.dev",
+  "https://cloud.r-project.org"
+))
 ```
 
-Installing from source compiles Apache Iceberg's Rust implementation, so you need
-a Rust toolchain (`rustc` >= 1.92):
+On Windows and macOS that is a prebuilt binary. On Linux, R compiles it, so install
+[Rust](https://rustup.rs) 1.88 or newer first:
 
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-Expect the first build to take a while: a default install compiles 264 crates.
-
-Optional backends are off by default because each substantially enlarges that
-tree:
-
-```sh
-# Object storage (S3)
-ICEBERGR_CARGO_FEATURES=s3 R CMD INSTALL --preclean .
-
-# AWS Glue catalog (implies s3)
-ICEBERGR_CARGO_FEATURES=glue R CMD INSTALL --preclean .
-```
-
-Either of those needs network access, even from the CRAN tarball. The vendored
-crates bundled there cover the default build; the roughly one hundred extra
-crates these features pull in — the AWS SDK among them — would have tripled the
-tarball, so cargo fetches them from crates.io instead.
-
-## Getting started
-
-Everything below runs offline against a locally generated table.
+## 🔍 Read
 
 ```r
 library(icebergr)
+tbl <- icebergr_example_table() # a real Iceberg table, built on your machine
 
-tbl <- icebergr_example_table()
-tbl
-#> <icebergr_table>
-#>   table:    db.events
-#>   location: /tmp/RtmpXXXXXX/icebergr-warehouse/db/events
-#>   format:   v2
-#>   snapshot: 4964299904926817223
-#>   columns:  5
-#>     id <int>
-#>     event <string>
-#>     amount <double>
-#>     day <date>
-#>     recorded_at <timestamptz>
+icebergr_collect(icebergr_scan(tbl, filter = amount > 997, select = c("id", "event", "amount")))
+#> # A tibble: 3 × 3
+#>      id event    amount
+#>   <int> <chr>     <dbl>
+#> 1  1498 refund      998
+#> 2  1499 purchase    999
+#> 3  1500 refund     1000
 ```
 
-Read it, pushing the filter and the projection down into the scan:
+The filter runs inside Iceberg, which skips whole files before reading a byte:
+
+<img src="man/figures/data-path.png" width="100%" alt="A filter written in R is pushed down into iceberg-rust, which plans the scan, prunes files and row groups, reads two of six data files, and returns the result to R over the Arrow C stream." />
+
+## ⏳ Time travel and ✍️ appends
 
 ```r
-icebergr_collect(
-  icebergr_scan(tbl, filter = id > 1000 & amount > 900, select = c("id", "amount"))
-)
+first <- icebergr_snapshots(tbl)$snapshot_id[[1]]
+nrow(icebergr_collect(icebergr_scan(tbl, snapshot_id = first)))
+#> [1] 500
+
+tbl <- icebergr_append(tbl, head(icebergr_collect(tbl), 2)) # a new snapshot, nothing rewritten
+nrow(icebergr_collect(tbl))
+#> [1] 1002
 ```
 
-Pushdown is the whole performance argument for Iceberg over reading raw Parquet,
-so it is worth being able to *verify* rather than assume. `icebergr_scan_plan()`
-shows which files a scan would touch, before reading any of them:
+## 🔌 Your own catalog
+
+Put your token in `~/.Renviron` as `ICEBERGR_REST_TOKEN=...` and restart R, then:
 
 ```r
-nrow(icebergr_scan_plan(icebergr_scan(tbl)))
-#> [1] 2
-nrow(icebergr_scan_plan(icebergr_scan(tbl, filter = id > 1000)))
-#> [1] 1
+catalog <- icebergr_catalog("rest", uri = "https://your.catalog")
+tbl <- icebergr_table(catalog, "db.events")
 ```
 
-Travel back through snapshot history:
+AWS Glue, S3 and every other setting:
+[catalog configuration](https://pursuitofdatascience.github.io/icebergr/articles/catalog-configuration.html).
 
-```r
-history <- icebergr_snapshots(tbl)
-history[, c("snapshot_id", "operation", "added_records")]
+## 🗺️ What works
 
-# The state before the most recent append
-icebergr_collect(icebergr_scan(tbl, snapshot_id = history$snapshot_id[[1]]))
-
-# Or by time. `as_of` is a *commit* time, not a time in the data, so take it
-# from the history: this table was written just now.
-icebergr_collect(icebergr_scan(tbl, as_of = history$timestamp[[1]]))
-```
-
-Append new data:
-
-```r
-tbl <- icebergr_append(tbl, data.frame(
-  id = 9001L,
-  event = "purchase",
-  amount = 42.5,
-  day = as.Date("2024-07-01"),
-  recorded_at = as.POSIXct("2024-07-01 09:00:00", tz = "UTC")
-))
-```
-
-Connect to a real catalog. Credentials come from the environment, never from
-arguments:
-
-```r
-Sys.setenv(ICEBERGR_REST_TOKEN = "...")
-catalog <- icebergr_catalog("rest", uri = "https://catalog.example.com")
-
-icebergr_list_namespaces(catalog)
-icebergr_list_tables(catalog, "analytics")
-
-tbl <- icebergr_table(catalog, "analytics.events")
-icebergr_schema(tbl)
-icebergr_partitions(tbl)
-```
-
-See `vignette("catalog-configuration")` for REST, Glue and S3 setup.
-
-## Supported Iceberg features
-
-Built against **`iceberg-rust` 0.10.0**. Reads and writes table spec **v1 and
-v2**. v3 metadata is parsed, but v3-specific features are not exposed.
-
-`icebergr_spec_support()` reports this matrix for your own build, resolved
-against the optional features you compiled in.
-
-✅ works &nbsp;·&nbsp; ⚙️ needs a build flag &nbsp;·&nbsp; 🦀 missing upstream in
-`iceberg-rust` &nbsp;·&nbsp; 🚧 out of scope for 0.1.0
-
-**📖 Reading**
-
-| | |
-| :-: | --- |
-| ✅ | Read a table into Arrow / a tibble |
-| ✅ | **Predicate pushdown** — filters prune whole files and row groups |
-| ✅ | **Projection pushdown** — only selected columns leave disk |
-| ✅ | Row group and row-level scan pruning |
-| ✅ | Merge-on-read tables — positional *and* equality deletes applied. `iceberg-rust` refuses an equality delete keyed on a `list` or `map` column; every other column type is handled |
-| ✅ | Inspect the file plan before reading, with `icebergr_scan_plan()` |
-| ✅ | Nested types — `struct` and `list` read and write. A `map` column can be created, but writing map *values* from R needs the `arrow` package, since `nanoarrow` cannot build a map array alone. Note `nanoarrow::na_map()` needs its key type built non-nullable: `na_map(na_string(nullable = FALSE), …)` |
-| 🦀 | Row `limit` pushdown — `limit` bounds decoding, not planning |
-| 🦀 | Pushdown *on* a nested field — read the parent column and filter in R |
-| ✅ | `decimal` filters — row-level selection is disabled for these scans, because `iceberg-rust` 0.10.0 drops every row of an ordering comparison on a decimal; file and row group pruning still apply |
-
-**🕰️ Time travel**
-
-| | |
-| :-: | --- |
-| ✅ | Snapshot history |
-| ✅ | Read a snapshot by id |
-| ✅ | Read as of a timestamp — resolved against Iceberg's snapshot log, so a rollback's abandoned snapshot is not selected |
-| ✅ | Read the schema as of a snapshot, and filter and select by the names *it* had |
-
-**✍️ Writing**
-
-| | |
-| :-: | --- |
-| ✅ | Append rows |
-| ✅ | Create a table (unpartitioned) and a namespace |
-| ✅ | Register an existing table — from a metadata file named `<version>-<uuid>.metadata.json`, as every engine writes them; a renamed file reads but cannot be appended to |
-| ✅ | Spec **v1** tables read, filter and append, and stay v1 |
-| 🚧 | Appending to a *partitioned* table — refused before anything is written, since a partition value per row is not computed. Reading one works |
-| 🦀 | Row-level deletes and `MERGE` / upsert — *reading* such tables works. `iceberg-rust` can write an equality delete file but has no transaction action that commits one |
-| 🦀 | Overwrite writes — `fast_append` is the only way `iceberg-rust` 0.10.0 can add files |
-| 🚧 | Partitioned table creation — available upstream, not exposed here |
-
-**🗂️ Catalogs and metadata**
-
-| | |
-| :-: | --- |
-| ✅ | REST catalog |
-| ✅ | In-process `memory` catalog, for local warehouses |
-| ✅ | Schema and partition spec inspection, including a partitioned table's spec |
-| ✅ | Table properties, and `icebergr_reload()` to see another session's commits |
-| 🚧 | Setting table properties — needs an `update_properties` transaction |
-| ⚙️ | AWS Glue — build with the `glue` Cargo feature |
-| ⚙️ | Object storage (S3) — build with the `s3` Cargo feature |
-| 🦀 | Hadoop / filesystem catalog — none exists upstream; use `type = "memory"` |
-
-**🚧 Not in 0.1.0** — schema evolution, partition evolution, snapshot expiry,
-`dbplyr` lazy verbs, table encryption. Compaction is 🦀: it needs a rewrite action
-`iceberg-rust` 0.10.0 does not have.
-
-A correct narrow surface beats a broad buggy one. Anything marked 🦀 or 🚧 raises
-an informative error rather than failing obscurely.
-
-## Type fidelity
-
-R types survive the Arrow round trip as follows:
-
-| R type | Iceberg type | Round trip |
+| | ✅ Works | 🚫 Not yet |
 | --- | --- | --- |
-| `integer` | `int` | Unchanged |
-| `double` | `double` | Unchanged, including `Inf` and `-Inf`. **`NaN` returns as `NA`**: R's `is.na(NaN)` is `TRUE`, so it is written as a null. |
-| `character` | `string` | Unchanged, UTF-8 preserved |
-| `logical` | `boolean` | Unchanged |
-| `Date` | `date` | Unchanged |
-| `POSIXct` | `timestamptz` | Instant preserved; normalised to UTC |
-| `bit64::integer64` | `long` | Unchanged, full 64-bit precision. Reading a `long` back needs `bit64` installed; without it Arrow's `int64` narrows to a `double`. |
-| `factor` | `string` | **Returns `character`.** Iceberg has no dictionary type, so levels cannot be carried. |
-| `POSIXct` | `timestamp_ns` | Readable, writable and filterable, but a `POSIXct` is a double of *seconds*, so sub-microsecond precision is lost. `nanoarrow` warns on every such read — it triggers on the nanosecond count exceeding 2^53, which any present-day instant does, so the warning appears even when nothing was actually lost. |
-| data frame column | `struct` | Unchanged, and comes back as a data frame column. Iceberg cannot push a filter or a projection down *onto* a nested field, so read the parent column and subset it in R. |
-| `vctrs::list_of` | `list` | Unchanged, and comes back as a `list_of` column. |
+| **Read** | filter and column pushdown · merge-on-read deletes · `struct`, `list`, `map` | 🦀 `limit` pushdown · 🦀 filters on nested fields |
+| **Time travel** | by snapshot id or time · the schema as of any snapshot | |
+| **Write** | append · create a table or namespace · register a table | 🚧 partitioned appends · 🦀 deletes, `MERGE`, overwrite |
+| **Catalogs** | REST · local `memory` · ⚙️ AWS Glue · ⚙️ S3 | 🦀 Hadoop (use `memory`) |
 
-Snapshot ids are **character**, not numeric. Iceberg assigns them as random
-64-bit integers and an R numeric holds only 53 bits, so a double round trip would
-silently select the wrong snapshot.
+⚙️ opt-in at build time · 🦀 missing in `iceberg-rust` itself · 🚧 not in this release ·
+`icebergr_spec_support()` lists everything for your build.
 
-## CRAN status
+## ⚠️ Good to know
 
-**CRAN is the target.** The package is built to submit: `configure` and
-`configure.win`, `Makevars.in` templates, vendored dependencies via
-`tools/vendor.R`, an offline `--offline` build, `-j2` to stay inside CRAN's
-parallelism limit, a `CARGO_HOME` confined to the build tree, and a per-crate
-`LICENSE.note` inventory. CI runs that exact path on every commit, so the
-submission build is exercised continuously rather than assembled at the last
-minute.
+| | |
+| --- | --- |
+| 🔑 | Credentials come from environment variables, never arguments, and never travel over plain `http://`. |
+| 🆔 | Snapshot ids are `character`: they are 64-bit integers, and a double holds 53 bits. |
+| 🔢 | Install `bit64` so `long` columns stay exact past 2^53. |
+| 🧵 | Parallel work: `parallel::makeCluster()`, not `mclapply()`, and connect inside each worker. |
+| 🐢 | `limit` applies after the scan. To read less, filter. |
 
-Two things have to clear first. Both are tractable; neither is settled.
+## 📜 Licence
 
-**1. Vendored size — measured, not estimated.** The source tarball is **10.7 MB**,
-almost all of it `vendor.tar.xz`. That is over CRAN's 10 MB guideline, which
-explicitly allows requesting more; the request is in
-[`cran-comments.md`](https://github.com/PursuitOfDataScience/icebergr/blob/main/cran-comments.md),
-made with the arithmetic shown rather than asserted.
-
-It was 31.5 MB until `tools/vendor.R` learned to reduce the vendor tree rather
-than just compress it. `cargo vendor` writes every entry in `Cargo.lock`, and a
-lockfile is a union over every platform and every optional feature, so most of
-what it writes is never compiled: of 442 crates, **270** are compiled on at least
-one platform R runs on and **264** on any single machine. The other 172 — the
-optional Glue and S3 backends, and the crates belonging to operating systems R
-does not run on — cannot be *deleted*, because cargo resolves the whole lock graph
-before it filters targets or selects features and fails outright on a missing
-package. But it never reads the ones it does not select, so they ship as their
-manifest and their licence rather than as source. With that plus four smaller
-sweeps (test corpora, files cargo ignores, `#[cfg(test)]` modules inside `src/`,
-and the 219 of 246 `windows-sys` API modules behind disabled features), 373.8 MB
-of vendored sources become 97.3 MB.
-
-What is left is not reducible without giving something up. `iceberg` declares
-`[features] default = []` and has no optional dependencies, so `tokio`, `reqwest`,
-`parquet`, twelve `arrow-*` crates and `apache-avro` are unconditional. Compressed
-individually the ten largest crates are 4.45 MB of the 10.46 MB archive and the
-remaining 432 directories average 22 KB, so there is no longer a single item to
-attack.
-
-One consequence for anyone enabling an optional backend: `ICEBERGR_CARGO_FEATURES`
-builds fetch their extra crates from crates.io, because the bundled archive covers
-the default build. A default install still touches the network at no point, and CI
-runs that offline path on every commit.
-
-**2. Minimum Rust version.** `iceberg-rust` 0.10.0 declares `rustc` 1.94 and
-edition 2024, and bumps its minimum most releases. This one is now measured
-rather than assumed: CRAN's Windows build farm carries 1.92.0, and the first
-submission failed to install there because of it.
-
-The declared floor is not a real one. Four crates in the tree ask for 1.94 —
-`iceberg`, `iceberg-catalog-rest`, `iceberg-catalog-glue` and `fastnum`, with
-nothing else above 1.91.1 — and none of them uses a language or library feature
-newer than 1.92. The whole tree compiles, and the test suite passes, on 1.92.0.
-Cargo treats a dependency's `rust-version` as a hard error rather than a warning,
-so `src/Makevars{,.win}` pass `--ignore-rust-version` and `tools/msrv.R` gates on
-the floor the package is genuinely tested against, which `DESCRIPTION` states as
-1.92.
-
-Pinning an earlier `iceberg-rust` stays the fallback for the day a release really
-does need something newer:
-
-| `iceberg-rust` | Declared MSRV | Cost of pinning it |
-| --- | --- | --- |
-| 0.10.0 (current) | 1.94, builds on 1.92 | — |
-| 0.9.1 | 1.92 | Loses `with_runtime`; the runtime is then inherited from the calling context, which is where we already are |
-| 0.8.0 | 1.88 | Predates the storage-factory refactor; needs real binding changes |
-
-Edition 2024 itself only needs 1.85, which is early 2025, so the edition is not
-the constraint — the rolling minimum is.
-
-**Precedent worth knowing.** `polars` was on CRAN in 2023 with a non-vendored,
-network-fetching build that current policy disallows, and is on r-universe today.
-That is a caution about *how* a heavy Rust package fails a submission, not proof
-that one must.
-
-[`FEASIBILITY.md`](https://github.com/PursuitOfDataScience/icebergr/blob/main/FEASIBILITY.md) has the full analysis, the measurements behind these numbers, and
-what remains unverified.
-
-## Licence
-
-GPL (>= 3). Bundled Rust crates keep their own licences, listed in `inst/NOTICE` and
-`LICENSE.note`.
-
-Apache, Apache Iceberg and Iceberg are trademarks of The Apache Software
-Foundation. `icebergr` is an independent community package, not affiliated with
-or endorsed by the ASF, and is not one of the official Iceberg clients.
+GPL (>= 3); bundled Rust crates keep their own licences (`inst/NOTICE`, `LICENSE.note`).
+Apache, Apache Iceberg and Iceberg are trademarks of The Apache Software Foundation;
+icebergr is a community package, not affiliated with or endorsed by the ASF.

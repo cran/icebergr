@@ -10,6 +10,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+<meta name="author" content="Youzhi Yu University of Chicago" />
 
 
 <title>Getting started with icebergr</title>
@@ -144,6 +145,29 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; }
 
 
 
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
 
 <style type="text/css">body {
 background-color: #fff;
@@ -338,6 +362,8 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 <h1 class="title toc-ignore">Getting started with icebergr</h1>
+<h4 class="author">Youzhi Yu<br><span style="font-size:85%;">University
+of Chicago</span></h4>
 
 
 
@@ -346,14 +372,21 @@ machine. No catalog server, no network, no credentials.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(icebergr)</span></code></pre></div>
 <div id="what-this-package-is-for" class="section level2">
 <h2>What this package is for</h2>
-<p>Iceberg is the open table format that Snowflake, Databricks,
+<p>Iceberg <span class="citation">(The Apache Software Foundation
+2026a)</span> is the open table format that Snowflake, Databricks,
 BigQuery, AWS and Dremio have all standardised on. Apache maintains
-clients for Java, Python, Rust and Go — but not R, which has been able
-to read Iceberg tables only by routing through DuckDB. That rules out
-writes, snapshot management, schema access and catalog integration.</p>
-<p><code>icebergr</code> binds <code>iceberg-rust</code> directly. Arrow
-is the interchange layer, so scan results arrive in R without a
-serialisation round trip.</p>
+clients for Java, Python, Rust and Go, but not for R, where Iceberg has
+been reached through a query engine such as DuckDB <span class="citation">(Raasveldt and Mühleisen 2019)</span>. A client is a
+different thing: it hands you the table itself, with its snapshots, its
+schema as of each of them and its scan plan, as R objects.</p>
+<p><code>icebergr</code> binds <code>iceberg-rust</code> <span class="citation">(The Apache Software Foundation 2026b)</span> directly
+through extendr <span class="citation">(The extendr authors
+2026)</span>. Arrow is the interchange layer, so scan results arrive in
+R over the C stream interface <span class="citation">(The Apache
+Software Foundation 2026c)</span> without a serialisation round
+trip.</p>
+<p><code>vignette(&quot;table-format&quot;)</code> explains the format itself, and
+why a client rather than an exporter is the thing worth having.</p>
 </div>
 <div id="a-table-to-work-with" class="section level2">
 <h2>A table to work with</h2>
@@ -361,12 +394,12 @@ serialisation round trip.</p>
 a temporary warehouse directory: two appends, so there is history to
 travel through and more than one data file for a filter to prune.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_example_table</span>(<span class="at">rows =</span> <span class="dv">200</span>)</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>tbl</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">show</span>(tbl)</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; &lt;icebergr_table&gt;</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;   table:    db.events</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   location: /project/rcc/youzhi/.cache/tmp/RtmpzqaPBY/icebergr-warehouse6c2045a4bbc33/db/events</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;   location: &lt;tempdir&gt;/icebergr-warehouse36af1b6d25847/db/events</span></span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;   format:   v2</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   snapshot: 6935205264320674142</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;   snapshot: 8366944007054660138</span></span>
 <span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;   columns:  5</span></span>
 <span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;     id &lt;int&gt;</span></span>
 <span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;     event &lt;string&gt;</span></span>
@@ -374,7 +407,7 @@ travel through and more than one data file for a filter to prune.</p>
 <span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;     day &lt;date&gt;</span></span>
 <span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;     recorded_at &lt;timestamptz&gt;</span></span></code></pre></div>
 <p>It is generated rather than shipped because Iceberg records absolute
-paths in its metadata and its Avro manifests — a table built on one
+paths in its metadata and its Avro manifests, so a table built on one
 machine does not resolve on another.</p>
 </div>
 <div id="inspecting-a-table" class="section level2">
@@ -404,11 +437,11 @@ R happens on read.</p>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 5</span></span>
 <span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt;      id event    amount day        recorded_at        </span></span>
 <span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt; &lt;chr&gt;     &lt;dbl&gt; &lt;date&gt;     &lt;dttm&gt;             </span></span>
-<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 1     1 click      0.5  2024-01-01 2024-01-01 00:00:00</span></span>
-<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 2     2 view       1.75 2024-01-02 2024-01-01 01:00:00</span></span>
-<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 3     3 purchase   3.01 2024-01-03 2024-01-01 02:00:00</span></span>
-<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 4     4 scroll     4.26 2024-01-04 2024-01-01 03:00:00</span></span>
-<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 5     5 click      5.52 2024-01-05 2024-01-01 04:00:00</span></span></code></pre></div>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; 1  1001 purchase   500  2024-06-01 2024-06-01 00:00:00</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt; 2  1002 refund     503. 2024-06-02 2024-06-01 01:00:00</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt; 3  1003 purchase   505. 2024-06-03 2024-06-01 02:00:00</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 4  1004 refund     508. 2024-06-04 2024-06-01 03:00:00</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 5  1005 purchase   510. 2024-06-05 2024-06-01 04:00:00</span></span></code></pre></div>
 <p>Scanning the whole table is common enough to have a shorthand:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_collect</span>(tbl))</span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="co">#&gt; [1] 400</span></span></code></pre></div>
@@ -514,8 +547,8 @@ so:</p>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 4</span></span>
 <span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="co">#&gt;   snapshot_id         operation added_records total_records</span></span>
 <span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;               &lt;chr&gt;             &lt;dbl&gt;         &lt;dbl&gt;</span></span>
-<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 1 2210251406760931063 append              200           200</span></span>
-<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 2 6935205264320674142 append              200           400</span></span></code></pre></div>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="co">#&gt; 1 2945480947849519475 append              200           200</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="co">#&gt; 2 8366944007054660138 append              200           400</span></span></code></pre></div>
 <p>Snapshot ids are <strong>character</strong>, not numeric. Iceberg
 assigns them as random 64-bit integers, and an R numeric carries only 53
 bits, so passing one through a double would silently select the wrong
@@ -620,8 +653,8 @@ carried and values come back as <code>character</code>.</p>
 </div>
 <div id="knowing-what-is-not-supported" class="section level2">
 <h2>Knowing what is not supported</h2>
-<p><code>icebergr</code> 0.1.0 is deliberately narrow. Rather than
-discovering a gap at runtime, ask:</p>
+<p><code>icebergr</code> is deliberately narrow. Rather than discovering
+a gap at runtime, ask:</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>support <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()</span>
 <span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>support<span class="sc">$</span>spec_versions</span>
 <span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a><span class="co">#&gt; [1] 1 2</span></span></code></pre></div>
@@ -637,24 +670,66 @@ discovering a gap at runtime, ask:</p>
 <span id="cb22-10"><a href="#cb22-10" tabindex="-1"></a><span class="co">#&gt;  4 Table properties (write)      Needs an update_properties transaction; out of…</span></span>
 <span id="cb22-11"><a href="#cb22-11" tabindex="-1"></a><span class="co">#&gt;  5 Hadoop/filesystem catalog     Not implemented in iceberg-rust; use type = &#39;m…</span></span>
 <span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a><span class="co">#&gt;  6 Row limit pushdown            iceberg-rust has no row limit in its scan API;…</span></span>
-<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;  7 Row-level deletes (write)     iceberg-rust 0.10.0 can write an equality dele…</span></span>
+<span id="cb22-13"><a href="#cb22-13" tabindex="-1"></a><span class="co">#&gt;  7 Row-level deletes (write)     iceberg-rust 0.10 can write an equality delete…</span></span>
 <span id="cb22-14"><a href="#cb22-14" tabindex="-1"></a><span class="co">#&gt;  8 MERGE / upsert                Needs row-level deletes plus an overwrite, nei…</span></span>
-<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt;  9 Overwrite writes              iceberg-rust 0.10.0 has no overwrite or rewrit…</span></span>
-<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; 10 Schema evolution              Out of scope for icebergr 0.1.0                </span></span>
-<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; 11 Partitioned table creation    Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-15"><a href="#cb22-15" tabindex="-1"></a><span class="co">#&gt;  9 Overwrite writes              iceberg-rust 0.10 has no overwrite or rewrite …</span></span>
+<span id="cb22-16"><a href="#cb22-16" tabindex="-1"></a><span class="co">#&gt; 10 Schema evolution              Out of scope for this version of icebergr      </span></span>
+<span id="cb22-17"><a href="#cb22-17" tabindex="-1"></a><span class="co">#&gt; 11 Partitioned table creation    Out of scope for this version of icebergr      </span></span>
 <span id="cb22-18"><a href="#cb22-18" tabindex="-1"></a><span class="co">#&gt; 12 Append to a partitioned table An append would have to compute a partition va…</span></span>
-<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co">#&gt; 13 Partition evolution           Out of scope for icebergr 0.1.0                </span></span>
+<span id="cb22-19"><a href="#cb22-19" tabindex="-1"></a><span class="co">#&gt; 13 Partition evolution           Out of scope for this version of icebergr      </span></span>
 <span id="cb22-20"><a href="#cb22-20" tabindex="-1"></a><span class="co">#&gt; 14 Compaction / maintenance      Compaction needs a rewrite action iceberg-rust…</span></span>
-<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="co">#&gt; 15 dbplyr lazy verbs             Out of scope for icebergr 0.1.0                </span></span>
-<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; 16 Table encryption              Not exposed in icebergr 0.1.0</span></span></code></pre></div>
+<span id="cb22-21"><a href="#cb22-21" tabindex="-1"></a><span class="co">#&gt; 15 dbplyr lazy verbs             Out of scope for this version of icebergr      </span></span>
+<span id="cb22-22"><a href="#cb22-22" tabindex="-1"></a><span class="co">#&gt; 16 Table encryption              Not exposed by this version of icebergr</span></span></code></pre></div>
 <p>Some of those are absent from <code>iceberg-rust</code> itself, not
 just from this package; the <code>reason</code> column says which.</p>
 </div>
 <div id="where-next" class="section level2">
 <h2>Where next</h2>
-<p><code>vignette(&quot;catalog-configuration&quot;)</code> covers connecting to
-REST catalogs, AWS Glue and object storage, and how credentials are
-handled.</p>
+<p>Six vignettes go deeper on one theme each:</p>
+<ul>
+<li><code>vignette(&quot;table-format&quot;)</code>: what Iceberg is, and what it
+fixes</li>
+<li><code>vignette(&quot;pushdown&quot;)</code>: how a filter prunes files and row
+groups</li>
+<li><code>vignette(&quot;time-travel&quot;)</code>: snapshots, timestamps and
+rollbacks</li>
+<li><code>vignette(&quot;writing&quot;)</code>: appends, table creation, and what
+is refused</li>
+<li><code>vignette(&quot;types&quot;)</code>: the R, Arrow and Iceberg type
+correspondence</li>
+<li><code>vignette(&quot;catalog-configuration&quot;)</code>: REST, AWS Glue,
+object storage, and how credentials are handled</li>
+</ul>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-raasveldt2019duckdb" class="csl-entry">
+Raasveldt, Mark, and Hannes Mühleisen. 2019. <span>“<span>DuckDB</span>:
+An Embeddable Analytical Database.”</span> In <em>Proceedings of the
+2019 ACM SIGMOD International Conference on Management of Data</em>,
+1981–84. <a href="https://doi.org/10.1145/3299869.3320212">https://doi.org/10.1145/3299869.3320212</a>.
+</div>
+<div id="ref-icebergspec" class="csl-entry">
+The Apache Software Foundation. 2026a. <span>“Apache
+<span>Iceberg</span> Table Spec.”</span> Apache Iceberg documentation.
+<a href="https://iceberg.apache.org/spec/">https://iceberg.apache.org/spec/</a>.
+</div>
+<div id="ref-icebergrust" class="csl-entry">
+———. 2026b. <span>“<span class="nocase">iceberg-rust</span>: Apache
+<span>Iceberg</span> Official Native <span>Rust</span>
+Implementation.”</span> <a href="https://github.com/apache/iceberg-rust">https://github.com/apache/iceberg-rust</a>.
+</div>
+<div id="ref-arrowcdata" class="csl-entry">
+———. 2026c. <span>“The <span>Arrow</span> <span>C</span> Data Interface
+and <span>C</span> Stream Interface.”</span> Apache Arrow documentation.
+<a href="https://arrow.apache.org/docs/format/CDataInterface.html">https://arrow.apache.org/docs/format/CDataInterface.html</a>.
+</div>
+<div id="ref-extendr" class="csl-entry">
+The extendr authors. 2026. <em>Extendr: A Safe and User-Friendly
+<span>R</span> Extension Interface Using <span>Rust</span></em>. <a href="https://extendr.rs/">https://extendr.rs/</a>.
+</div>
+</div>
 </div>
 
 

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Youzhi Yu University of Chicago" />
+
+
+<title>Predicate and Projection Pushdown</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Predicate and Projection Pushdown</h1>
+<h4 class="author">Youzhi Yu<br><span style="font-size:85%;">University
+of Chicago</span></h4>
+
+
+
+<p>Pushdown is the reason to read an Iceberg table through a client
+rather than collect it and subset in R. <code>filter</code> and
+<code>select</code> travel with the scan into <code>iceberg-rust</code>,
+which uses them to decide what to open, so the saving is in bytes never
+read, not in rows discarded afterwards.</p>
+<p>This vignette shows the three levels at which that happens, and how
+to verify each of them rather than assume it.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>tbl <span class="ot">&lt;-</span> <span class="fu">icebergr_example_table</span>(<span class="at">rows =</span> <span class="dv">200</span>)</span></code></pre></div>
+<div id="the-three-levels" class="section level2">
+<h2>The three levels</h2>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Level</th>
+<th>Uses</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>File</td>
+<td>per-column bounds in the Iceberg manifest</td>
+<td>a file is never opened</td>
+</tr>
+<tr class="even">
+<td>Row group</td>
+<td>statistics in the Parquet footer</td>
+<td>a block within a file is skipped</td>
+</tr>
+<tr class="odd">
+<td>Row</td>
+<td>the filter, re-applied during decode</td>
+<td>non-matching rows are dropped</td>
+</tr>
+</tbody>
+</table>
+<p>The first two are <em>pruning</em> and cost nothing: the bounds were
+written at commit time. Only the third touches the data. The equivalent
+measurements for column stores in general are in <span class="citation">Abadi, Madden, and Hachem (2008)</span>, and for
+Parquet and ORC specifically, with their present-day encodings, in <span class="citation">Zeng et al. (2023)</span>.</p>
+</div>
+<div id="file-pruning-measured" class="section level2">
+<h2>File pruning, measured</h2>
+<p><code>icebergr_scan_plan()</code> returns the file tasks a scan would
+execute, without executing them. Comparing two plans is how you confirm
+a predicate was actually pushed down:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>all_files <span class="ot">&lt;-</span> <span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl))</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>hot_files <span class="ot">&lt;-</span> <span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> id <span class="sc">&gt;</span> <span class="dv">1000</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="fu">nrow</span>(all_files)</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt; [1] 2</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">nrow</span>(hot_files)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<p>The example table is built with two appends, so there are two data
+files and the second holds the higher ids. A filter that only the second
+can satisfy plans one file instead of two:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>all_files[, <span class="fu">c</span>(<span class="st">&quot;record_count&quot;</span>, <span class="st">&quot;file_size_in_bytes&quot;</span>)]</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 2</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;   record_count file_size_in_bytes</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;              &lt;dbl&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt; 1          200               4901</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; 2          200               4998</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>hot_files[, <span class="fu">c</span>(<span class="st">&quot;record_count&quot;</span>, <span class="st">&quot;file_size_in_bytes&quot;</span>)]</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; # A tibble: 1 × 2</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;   record_count file_size_in_bytes</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;          &lt;dbl&gt;              &lt;dbl&gt;</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt; 1          200               4901</span></span></code></pre></div>
+<p><code>record_count</code> is the count <em>before</em> filtering: it
+is what the manifest recorded when the file was written. A plan is a
+statement about what will be opened, not about what will come back.</p>
+<p>A predicate no file can satisfy prunes everything:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> id <span class="sc">&gt;</span> <span class="dv">10</span><span class="sc">^</span><span class="dv">6</span>)))</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span></code></pre></div>
+</div>
+<div id="projection-pushdown" class="section level2">
+<h2>Projection pushdown</h2>
+<p><code>select</code> never reaches the row level at all, because a
+columnar file lets the reader seek to the columns it wants and ignore
+the rest. This is Dremel’s layout <span class="citation">(Melnik et al.
+2010)</span>, and it is why the column list matters as much as the
+predicate:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>narrow <span class="ot">&lt;-</span> <span class="fu">icebergr_collect</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>  <span class="fu">icebergr_scan</span>(tbl, <span class="at">select =</span> <span class="fu">c</span>(<span class="st">&quot;id&quot;</span>, <span class="st">&quot;amount&quot;</span>), <span class="at">limit =</span> <span class="dv">3</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>narrow</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 2</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;      id amount</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt;  &lt;dbl&gt;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt; 1  1001   500 </span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; 2  1002   503.</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">#&gt; 3  1003   505.</span></span></code></pre></div>
+<p>The other columns are not decoded, not converted, and not allocated
+in R.</p>
+</div>
+<div id="which-predicates-push-down" class="section level2">
+<h2>Which predicates push down</h2>
+<p><code>filter</code> is an R expression, translated into an Iceberg
+predicate. What is translatable is a closed list of <code>==</code>,
+<code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>,
+<code>&gt;</code>, <code>&gt;=</code>, <code>&amp;</code>,
+<code>|</code>, <code>!</code>, <code>%in%</code>, <code>is.na()</code>,
+<code>is.nan()</code> and <code>startsWith()</code>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">icebergr_scan</span>(tbl,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    <span class="at">filter =</span> event <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;purchase&quot;</span>, <span class="st">&quot;refund&quot;</span>) <span class="sc">&amp;</span> amount <span class="sc">&gt;</span> <span class="dv">900</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>    <span class="at">select =</span> <span class="fu">c</span>(<span class="st">&quot;event&quot;</span>, <span class="st">&quot;amount&quot;</span>), <span class="at">limit =</span> <span class="dv">5</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  )</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt; # A tibble: 5 × 2</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;   event    amount</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;     &lt;dbl&gt;</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; 1 purchase   902.</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; 2 refund     905.</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt; 3 purchase   907.</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt; 4 refund     910.</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt; 5 purchase   912.</span></span></code></pre></div>
+<p>A bare name is read as a column when the table has one of that name,
+and otherwise evaluated in the calling environment, so a local variable
+works without any quoting ceremony:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>threshold <span class="ot">&lt;-</span> <span class="dv">950</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">icebergr_collect</span>(</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="fu">icebergr_scan</span>(tbl, <span class="at">filter =</span> amount <span class="sc">&gt;</span> threshold, <span class="at">select =</span> <span class="st">&quot;amount&quot;</span>, <span class="at">limit =</span> <span class="dv">3</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; # A tibble: 3 × 1</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   amount</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;    &lt;dbl&gt;</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; 1   952.</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; 2   955.</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; 3   957.</span></span></code></pre></div>
+<p>Anything outside that list belongs in R, after collecting. There is
+no partial credit: an expression the translator does not recognise is an
+error rather than a silently unpushed filter, because a filter that
+quietly stopped pruning would look like nothing more than a slow
+scan.</p>
+<p>What is pushed down keeps the rows R’s own evaluation would,
+<code>NA</code> and <code>NaN</code> included, even where Iceberg’s
+rules differ: <code>NaN</code> matches no comparison,
+<code>is.na()</code> is <code>TRUE</code> for it, and
+<code>!(x %in% c(1, 2))</code> keeps the rows where <code>x</code> is
+<code>NA</code>. <code>?icebergr_scan</code> names the one exception,
+string ordering.</p>
+</div>
+<div id="three-things-that-do-not-push-down" class="section level2">
+<h2>Three things that do not push down</h2>
+<p><strong><code>limit</code> bounds decoding, not planning.</strong>
+<code>iceberg-rust</code> 0.10 has no row limit in its scan API, so
+every file the predicate admits is still planned:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">nrow</span>(<span class="fu">icebergr_scan_plan</span>(<span class="fu">icebergr_scan</span>(tbl, <span class="at">limit =</span> <span class="dv">1</span>)))</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; [1] 2</span></span></code></pre></div>
+<p>The rows are counted as batches arrive, which does save conversion
+into R, but not I/O. Use a predicate to reduce I/O.</p>
+<p><strong>A filter on a nested field.</strong> Iceberg cannot push a
+predicate onto a field inside a <code>struct</code>; read the parent
+column and subset it in R.</p>
+<p><strong>A <code>decimal</code> ordering comparison, at the row level
+only.</strong> It is pushed down, but with <code>iceberg-rust</code>’s
+row-level selection turned off for that scan, because in 0.10 that stage
+drops every row of an ordering comparison against a decimal. File and
+row-group pruning still apply, so the scan is slightly less selective
+and still correct. <code>icebergr_spec_support()</code> records this as
+a known upstream limitation rather than leaving it to be discovered:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>features <span class="ot">&lt;-</span> <span class="fu">icebergr_spec_support</span>()<span class="sc">$</span>features</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>features[</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="fu">grepl</span>(<span class="st">&quot;decimal|limit&quot;</span>, features<span class="sc">$</span>feature, <span class="at">ignore.case =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>  <span class="fu">c</span>(<span class="st">&quot;feature&quot;</span>, <span class="st">&quot;supported&quot;</span>, <span class="st">&quot;reason&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>]</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 3</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;   feature            supported reason                                           </span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   &lt;chr&gt;              &lt;lgl&gt;     &lt;chr&gt;                                            </span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; 1 Decimal predicates TRUE      Row-level selection is disabled for these scans;…</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; 2 Row limit pushdown FALSE     iceberg-rust has no row limit in its scan API; l…</span></span></code></pre></div>
+</div>
+<div id="case-sensitivity" class="section level2">
+<h2>Case sensitivity</h2>
+<p>Iceberg column names are case-sensitive, and
+<code>case_sensitive = FALSE</code> prefers an exact match rather than
+taking the first hit. A table holding both <code>id</code> and
+<code>ID</code> resolves each to itself; a name that matches two columns
+and neither exactly is an error rather than a silent choice.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">icebergr_collect</span>(<span class="fu">icebergr_scan</span>(tbl,</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="at">select =</span> <span class="st">&quot;ID&quot;</span>, <span class="at">case_sensitive =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>  <span class="at">limit =</span> <span class="dv">2</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>))</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; # A tibble: 2 × 1</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt;      id</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;   &lt;int&gt;</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 1  1001</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 2  1002</span></span></code></pre></div>
+</div>
+<div id="reading-a-plan-for-cost-not-just-count" class="section level2">
+<h2>Reading a plan for cost, not just count</h2>
+<p><code>file_size_in_bytes</code> is what the manifest recorded, so a
+plan gives an I/O estimate before any read:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">sum</span>(all_files<span class="sc">$</span>file_size_in_bytes)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; [1] 9899</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">sum</span>(hot_files<span class="sc">$</span>file_size_in_bytes)</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt; [1] 4901</span></span></code></pre></div>
+<p>On object storage that ratio is the one that matters, and it is
+available without a single <code>GET</code> against the data. Query
+engines built around this format use the same metadata for the same
+purpose <span class="citation">(Behm et al. 2022)</span>.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-abadi2008column" class="csl-entry">
+Abadi, Daniel J., Samuel R. Madden, and Nabil Hachem. 2008.
+<span>“Column-Stores Vs. Row-Stores: How Different Are They
+Really?”</span> In <em>Proceedings of the 2008 ACM SIGMOD International
+Conference on Management of Data</em>, 967–80. <a href="https://doi.org/10.1145/1376616.1376712">https://doi.org/10.1145/1376616.1376712</a>.
+</div>
+<div id="ref-behm2022photon" class="csl-entry">
+Behm, Alexander, Shoumik Palkar, Utkarsh Agarwal, Timothy Armstrong,
+David Cashman, Ankur Dave, Todd Greenstein, et al. 2022. <span>“Photon:
+A Fast Query Engine for Lakehouse Systems.”</span> In <em>Proceedings of
+the 2022 ACM SIGMOD International Conference on Management of Data</em>,
+2326–39. <a href="https://doi.org/10.1145/3514221.3526054">https://doi.org/10.1145/3514221.3526054</a>.
+</div>
+<div id="ref-melnik2010dremel" class="csl-entry">
+Melnik, Sergey, Andrey Gubarev, Jing Jing Long, Geoffrey Romer, Shiva
+Shivakumar, Matt Tolton, and Theo Vassilakis. 2010. <span>“Dremel:
+Interactive Analysis of <span>Web-Scale</span> Datasets.”</span>
+<em>Proceedings of the VLDB Endowment</em> 3 (1-2): 330–39. <a href="https://doi.org/10.14778/1920841.1920886">https://doi.org/10.14778/1920841.1920886</a>.
+</div>
+<div id="ref-zeng2023columnar" class="csl-entry">
+Zeng, Xinyu, Yulong Hui, Jiahong Shen, Andrew Pavlo, Wes McKinney, and
+Huanchen Zhang. 2023. <span>“An Empirical Evaluation of Columnar Storage
+Formats.”</span> <em>Proceedings of the VLDB Endowment</em> 17 (2):
+148–61. <a href="https://doi.org/10.14778/3626292.3626298">https://doi.org/10.14778/3626292.3626298</a>.
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
